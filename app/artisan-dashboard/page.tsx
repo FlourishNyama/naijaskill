@@ -19,7 +19,7 @@ import {
   TrendingUp,
   Repeat,
   Loader2,
-  Search // <--- Import Search Icon
+  Search
 } from 'lucide-react';
 import ThemeToggle from '@/components/ThemeToggle';
 import { createClient } from '../../utils/supabase/client';
@@ -135,8 +135,19 @@ export default function ArtisanDashboard() {
              <Link href="/dashboard" className="md:hidden p-2 bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-400 rounded-full border border-gray-200 dark:border-slate-700">
                 <Repeat className="w-5 h-5" />
              </Link>
-            <div className="h-10 w-10 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center text-green-700 dark:text-green-400 font-bold border-2 border-white dark:border-slate-800 shadow-sm">
-               {user?.user_metadata?.full_name?.substring(0, 2).toUpperCase() || "AR"}
+            
+            {/* DYNAMIC PROFILE PICTURE LOGIC */}
+            <div className="relative w-10 h-10 rounded-full flex items-center justify-center text-green-700 dark:text-green-400 font-bold border-2 border-white dark:border-slate-800 shadow-sm overflow-hidden bg-green-100 dark:bg-green-900/30">
+               {user?.user_metadata?.avatar_url ? (
+                 <Image 
+                   src={user.user_metadata.avatar_url} 
+                   alt="Profile" 
+                   fill 
+                   className="object-cover"
+                 />
+               ) : (
+                 user?.user_metadata?.full_name?.substring(0, 2).toUpperCase() || "AR"
+               )}
             </div>
           </div>
         </div>
@@ -166,7 +177,7 @@ export default function ArtisanDashboard() {
             <p className="text-xs text-green-600 font-medium">Top Rated</p>
           </div>
 
-          {/* --- NEW: FIND WORK BUTTON --- */}
+          {/* Find Work Button */}
           <Link href="/find-work" className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col justify-center group hover:border-green-500 dark:hover:border-green-500 transition">
             <div className="flex items-center justify-between mb-2">
               <span className="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase group-hover:text-green-600">Find Work</span>
@@ -178,8 +189,6 @@ export default function ArtisanDashboard() {
         </div>
 
         {/* --- NEW JOB REQUESTS --- */}
-        <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">New Job Requests (1)</h2>
-        
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden mb-8">
           <div className="p-4 md:p-6 flex flex-col md:flex-row gap-4 md:gap-6 md:items-center">
             <div className="flex items-start gap-4 flex-1">

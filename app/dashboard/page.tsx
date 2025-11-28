@@ -131,13 +131,25 @@ export default function Dashboard() {
              <Link href="/artisan-dashboard" className="md:hidden p-2 bg-green-50 dark:bg-slate-800 text-green-600 dark:text-green-400 rounded-full border border-green-200 dark:border-slate-700">
                 <Repeat className="w-5 h-5" />
              </Link>
-             <div className="h-10 w-10 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center text-green-700 dark:text-green-400 font-bold border-2 border-white dark:border-slate-800 shadow-sm">
-                {user?.user_metadata?.full_name?.substring(0, 2).toUpperCase() || "CN"}
+
+             {/* DYNAMIC PROFILE PICTURE LOGIC */}
+             <div className="relative w-10 h-10 rounded-full flex items-center justify-center text-green-700 dark:text-green-400 font-bold border-2 border-white dark:border-slate-800 shadow-sm overflow-hidden bg-green-100 dark:bg-green-900/30">
+                {user?.user_metadata?.avatar_url ? (
+                  <Image 
+                    src={user.user_metadata.avatar_url} 
+                    alt="Profile" 
+                    fill 
+                    className="object-cover"
+                  />
+                ) : (
+                  // Fallback to initials if no image
+                  user?.user_metadata?.full_name?.substring(0, 2).toUpperCase() || "CN"
+                )}
              </div>
           </div>
         </div>
 
-        {/* --- NEW: POST A JOB BUTTON (Full Width) --- */}
+        {/* --- POST A JOB BUTTON --- */}
         <div className="mb-8">
           <Link href="/post-job" className="w-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 p-4 rounded-xl font-bold flex items-center justify-center hover:opacity-90 transition shadow-lg transform active:scale-95">
             <Plus className="w-5 h-5 mr-2" /> Post a New Job Request
