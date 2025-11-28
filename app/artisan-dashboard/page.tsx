@@ -18,7 +18,8 @@ import {
   Eye,
   TrendingUp,
   Repeat,
-  Loader2
+  Loader2,
+  Search // <--- Import Search Icon
 } from 'lucide-react';
 import ThemeToggle from '@/components/ThemeToggle';
 import { createClient } from '../../utils/supabase/client';
@@ -28,7 +29,6 @@ export default function ArtisanDashboard() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // --- SECURITY CHECK ---
   useEffect(() => {
     const checkUser = async () => {
       const supabase = createClient();
@@ -89,11 +89,9 @@ export default function ArtisanDashboard() {
         </nav>
 
         <div className="p-4 border-t border-gray-100 dark:border-gray-800 space-y-2">
-          {/* SWITCH TO CLIENT BUTTON */}
           <Link href="/dashboard" className="flex items-center px-4 py-3 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg font-bold text-sm transition">
              <Repeat className="w-4 h-4 mr-3" /> Switch to Client
           </Link>
-
           <button onClick={handleLogout} className="flex items-center px-4 py-3 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 font-medium w-full transition">
             <LogOut className="w-5 h-5 mr-3" /> Log Out
           </button>
@@ -127,23 +125,17 @@ export default function ArtisanDashboard() {
         <div className="flex justify-between items-center mb-6 md:mb-8 mt-4 md:mt-0">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Artisan Dashboard</h1>
-            {/* DYNAMIC NAME */}
             <p className="text-sm md:text-base text-gray-500 dark:text-gray-400">
               Welcome back, <span className="font-bold text-green-600">{user?.user_metadata?.full_name || "Artisan"}</span>.
             </p>
           </div>
           
           <div className="flex items-center gap-4">
-            
             <ThemeToggle />
-
-            {/* MOBILE SWITCH BUTTON (Icon Only) */}
              <Link href="/dashboard" className="md:hidden p-2 bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-400 rounded-full border border-gray-200 dark:border-slate-700">
                 <Repeat className="w-5 h-5" />
              </Link>
-
             <div className="h-10 w-10 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center text-green-700 dark:text-green-400 font-bold border-2 border-white dark:border-slate-800 shadow-sm">
-               {/* Initials */}
                {user?.user_metadata?.full_name?.substring(0, 2).toUpperCase() || "AR"}
             </div>
           </div>
@@ -174,15 +166,15 @@ export default function ArtisanDashboard() {
             <p className="text-xs text-green-600 font-medium">Top Rated</p>
           </div>
 
-          {/* Views Card */}
-          <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col justify-center">
+          {/* --- NEW: FIND WORK BUTTON --- */}
+          <Link href="/find-work" className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col justify-center group hover:border-green-500 dark:hover:border-green-500 transition">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase">Profile Views</span>
-              <Eye className="w-4 h-4 text-blue-500" />
+              <span className="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase group-hover:text-green-600">Find Work</span>
+              <Search className="w-4 h-4 text-green-500" />
             </div>
-            <div className="text-2xl font-bold text-gray-900 dark:text-white">128</div>
-            <p className="text-xs text-gray-500">+12 this week</p>
-          </div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">Browse</div>
+            <p className="text-xs text-gray-500">View open jobs</p>
+          </Link>
         </div>
 
         {/* --- NEW JOB REQUESTS --- */}
@@ -190,12 +182,8 @@ export default function ArtisanDashboard() {
         
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden mb-8">
           <div className="p-4 md:p-6 flex flex-col md:flex-row gap-4 md:gap-6 md:items-center">
-            
-            {/* Client Info */}
             <div className="flex items-start gap-4 flex-1">
-              <div className="w-12 h-12 bg-gray-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-gray-500 font-bold shrink-0">
-                JD
-              </div>
+              <div className="w-12 h-12 bg-gray-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-gray-500 font-bold shrink-0">JD</div>
               <div>
                 <h3 className="font-bold text-gray-900 dark:text-white text-base">John Doe</h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Wants to hire you for: <span className="text-green-600 dark:text-green-400 font-bold">Kitchen Sink Repair</span></p>
@@ -205,14 +193,11 @@ export default function ArtisanDashboard() {
                 </div>
               </div>
             </div>
-
-            {/* Price & Actions */}
             <div className="flex flex-row md:flex-col items-center md:items-end justify-between gap-4 md:gap-2 border-t md:border-t-0 border-gray-100 dark:border-gray-800 pt-4 md:pt-0">
               <div className="text-left md:text-right">
                 <span className="block text-xs text-gray-400 uppercase font-bold">Proposed Budget</span>
                 <span className="text-xl font-bold text-gray-900 dark:text-white">₦10,000</span>
               </div>
-              
               <div className="flex gap-2 w-full md:w-auto">
                 <button className="flex-1 md:flex-none px-4 py-2 bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 rounded-lg text-sm font-bold hover:bg-gray-200 dark:hover:bg-slate-700 flex items-center justify-center">
                   <XCircle className="w-4 h-4 mr-1" /> Decline
@@ -223,13 +208,6 @@ export default function ArtisanDashboard() {
               </div>
             </div>
           </div>
-        </div>
-
-        {/* --- ACTIVE PROJECTS --- */}
-        <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Active Projects</h2>
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-100 dark:border-gray-800 p-8 text-center">
-          <p className="text-gray-500 dark:text-gray-400">No active jobs right now.</p>
-          <p className="text-sm text-gray-400 dark:text-gray-600 mt-1">Accept the request above to start working!</p>
         </div>
 
       </main>

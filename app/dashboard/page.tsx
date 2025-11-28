@@ -15,9 +15,9 @@ import {
   ShieldCheck,
   Plus,
   Repeat,
-  Loader2 // Loading spinner
+  Loader2
 } from 'lucide-react';
-import { createClient } from '../../utils/supabase/client'; // Your phone line
+import { createClient } from '../../utils/supabase/client'; 
 
 export default function Dashboard() {
   const router = useRouter();
@@ -28,15 +28,11 @@ export default function Dashboard() {
   useEffect(() => {
     const checkUser = async () => {
       const supabase = createClient();
-      
-      // 1. Get the current user
       const { data: { user }, error } = await supabase.auth.getUser();
 
       if (error || !user) {
-        // 2. If no user, kick them to login
         router.push('/login');
       } else {
-        // 3. If user exists, save them to state
         setUser(user);
         setLoading(false);
       }
@@ -51,7 +47,6 @@ export default function Dashboard() {
     router.push('/login');
   };
 
-  // Show a loading screen while we check security
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white dark:bg-slate-950">
@@ -91,11 +86,9 @@ export default function Dashboard() {
         </nav>
 
         <div className="p-4 border-t border-gray-100 dark:border-gray-800 space-y-2">
-          {/* SWITCH TO ARTISAN BUTTON */}
           <Link href="/artisan-dashboard" className="flex items-center px-4 py-3 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-900/10 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg font-bold text-sm transition">
              <Repeat className="w-4 h-4 mr-3" /> Switch to Artisan
           </Link>
-
           <button onClick={handleLogout} className="flex items-center px-4 py-3 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 font-medium w-full transition">
             <LogOut className="w-5 h-5 mr-3" /> Log Out
           </button>
@@ -130,22 +123,25 @@ export default function Dashboard() {
         <div className="flex justify-between items-center mb-6 md:mb-8 mt-4 md:mt-0">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
-            {/* DYNAMIC WELCOME MESSAGE */}
             <p className="text-sm md:text-base text-gray-500 dark:text-gray-400">
               Welcome back, <span className="font-bold text-green-600">{user?.user_metadata?.full_name || "Client"}</span>.
             </p>
           </div>
           <div className="flex items-center gap-3">
-             {/* MOBILE SWITCH BUTTON (Icon Only) */}
              <Link href="/artisan-dashboard" className="md:hidden p-2 bg-green-50 dark:bg-slate-800 text-green-600 dark:text-green-400 rounded-full border border-green-200 dark:border-slate-700">
                 <Repeat className="w-5 h-5" />
              </Link>
-
              <div className="h-10 w-10 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center text-green-700 dark:text-green-400 font-bold border-2 border-white dark:border-slate-800 shadow-sm">
-                {/* Initials */}
                 {user?.user_metadata?.full_name?.substring(0, 2).toUpperCase() || "CN"}
              </div>
           </div>
+        </div>
+
+        {/* --- NEW: POST A JOB BUTTON (Full Width) --- */}
+        <div className="mb-8">
+          <Link href="/post-job" className="w-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 p-4 rounded-xl font-bold flex items-center justify-center hover:opacity-90 transition shadow-lg transform active:scale-95">
+            <Plus className="w-5 h-5 mr-2" /> Post a New Job Request
+          </Link>
         </div>
 
         {/* Stats Row */}
@@ -187,7 +183,6 @@ export default function Dashboard() {
 
         {/* ACTIVE JOB CARD */}
         <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Active Jobs</h2>
-        
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
           <div className="p-4 md:p-6 border-b border-gray-100 dark:border-gray-800 flex justify-between items-start">
             <div className="flex items-center space-x-3 md:space-x-4">
@@ -208,24 +203,6 @@ export default function Dashboard() {
               <Clock className="w-3 h-3 mr-1" /> In Progress
             </span>
           </div>
-
-          <div className="p-4 md:p-6 grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
-            <div>
-              <p className="text-[10px] md:text-xs text-gray-400 uppercase font-bold mb-1">Agreed Price</p>
-              <p className="text-base md:text-lg font-bold text-gray-900 dark:text-white">₦10,000</p>
-            </div>
-            <div className="col-span-2 md:col-span-1">
-              <p className="text-[10px] md:text-xs text-gray-400 uppercase font-bold mb-1">Payment Status</p>
-              <div className="flex items-center text-green-600 dark:text-green-400 font-medium text-sm md:text-base">
-                <ShieldCheck className="w-4 h-4 mr-1" /> Funds in Escrow
-              </div>
-            </div>
-            <div className="hidden md:block">
-              <p className="text-xs text-gray-400 uppercase font-bold mb-1">Due Date</p>
-              <p className="text-gray-900 dark:text-white">Tomorrow, 2:00 PM</p>
-            </div>
-          </div>
-
           <div className="bg-gray-50 dark:bg-slate-800/50 p-4 flex flex-col md:flex-row justify-between items-center gap-3">
              <button className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white font-medium text-sm w-full md:w-auto text-center">
                View Contract
