@@ -128,11 +128,17 @@ export default function Dashboard() {
             </p>
           </div>
           <div className="flex items-center gap-3">
+             {/* MOBILE LOGOUT BUTTON */}
+             <button onClick={handleLogout} className="md:hidden p-2 text-red-500 hover:bg-red-50 rounded-full">
+               <LogOut className="w-5 h-5" />
+             </button>
+
+             {/* MOBILE SWITCH BUTTON */}
              <Link href="/artisan-dashboard" className="md:hidden p-2 bg-green-50 dark:bg-slate-800 text-green-600 dark:text-green-400 rounded-full border border-green-200 dark:border-slate-700">
                 <Repeat className="w-5 h-5" />
              </Link>
 
-             {/* DYNAMIC PROFILE PICTURE LOGIC */}
+             {/* DYNAMIC PROFILE PICTURE */}
              <div className="relative w-10 h-10 rounded-full flex items-center justify-center text-green-700 dark:text-green-400 font-bold border-2 border-white dark:border-slate-800 shadow-sm overflow-hidden bg-green-100 dark:bg-green-900/30">
                 {user?.user_metadata?.avatar_url ? (
                   <Image 
@@ -142,7 +148,6 @@ export default function Dashboard() {
                     className="object-cover"
                   />
                 ) : (
-                  // Fallback to initials if no image
                   user?.user_metadata?.full_name?.substring(0, 2).toUpperCase() || "CN"
                 )}
              </div>
