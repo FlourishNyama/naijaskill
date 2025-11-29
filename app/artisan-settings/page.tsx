@@ -27,7 +27,6 @@ export default function ArtisanSettingsPage() {
       if (!user) { router.push('/login'); return; }
       setUser(user);
 
-      // Fetch Profile Data
       const { data: profile } = await supabase
         .from('profiles')
         .select('*')
@@ -45,10 +44,17 @@ export default function ArtisanSettingsPage() {
     getData();
   }, [router]);
 
-  // 2. Save Data
+  // 2. Save Data & Redirect
   const handleSave = async () => {
     setSaving(true);
     
+    // Check required fields before saving
+    if (!jobTitle || !rate) {
+        alert("Please enter your Job Title and Hourly Rate.");
+        setSaving(false);
+        return;
+    }
+
     const { error } = await supabase
       .from('profiles')
       .update({
@@ -62,11 +68,12 @@ export default function ArtisanSettingsPage() {
     if (error) {
       alert("Error: " + error.message);
     } else {
-      // alert("Profile Updated Successfully!"); // Optional: remove alert for smoother flow
-      router.push('/artisan-dashboard'); // <--- THE FIX: Go back to Dashboard
+      // SUCCESS! GO BACK TO DASHBOARD
+      router.push('/artisan-dashboard');
     }
     setSaving(false);
   };
+
   if (loading) return <div className="min-h-screen flex items-center justify-center dark:bg-slate-950"><Loader2 className="animate-spin text-green-600" /></div>;
 
   return (
@@ -95,10 +102,11 @@ export default function ArtisanSettingsPage() {
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 mb-8 space-y-6">
           
           <div>
-            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">Professional Title</label>
+            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">Professional Title <span className="text-red-500">*</span></label>
             <div className="relative">
               <Briefcase className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
               <input 
+                required
                 type="text" 
                 value={jobTitle}
                 onChange={(e) => setJobTitle(e.target.value)}
@@ -110,10 +118,11 @@ export default function ArtisanSettingsPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">Hourly Rate (₦)</label>
+              <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">Hourly Rate (₦) <span className="text-red-500">*</span></label>
               <div className="relative">
                 <DollarSign className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                 <input 
+                  required
                   type="number" 
                   value={rate}
                   onChange={(e) => setRate(e.target.value)}
@@ -155,7 +164,7 @@ export default function ArtisanSettingsPage() {
         <button 
           onClick={handleSave}
           disabled={saving}
-          className="w-full bg-green-600 text-white py-4 rounded-xl font-bold shadow-lg shadow-green-500/30 hover:bg-green-700 transition flex items-center justify-center"
+          className="w-full bg-green-600 text-white py-4 rounded-xl font-bold shadow-lg shadow-green-500/30 hover:bg-green-700 transition flex items-center justify-center transform active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
         >
           {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Save className="w-5 h-5 mr-2" /> Save Profile</>}
         </button>
