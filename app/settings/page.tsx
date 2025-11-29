@@ -39,11 +39,15 @@ export default function SettingsPage() {
       data: { full_name: fullName, phone: phone }
     });
     
-    // Also update the public 'profiles' table so search works with new name
+    // Also update the public 'profiles' table
     await supabase.from('profiles').update({ full_name: fullName }).eq('id', user.id);
 
-    if (error) alert("Error: " + error.message);
-    else alert("Profile Updated!");
+    if (error) {
+        alert("Error: " + error.message);
+    } else {
+        // alert("Profile Updated!"); 
+        router.push('/dashboard'); // <--- THE FIX: Go back to Dashboard
+    }
     
     setSaving(false);
   };

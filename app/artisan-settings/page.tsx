@@ -62,11 +62,11 @@ export default function ArtisanSettingsPage() {
     if (error) {
       alert("Error: " + error.message);
     } else {
-      alert("Profile Updated Successfully!");
+      // alert("Profile Updated Successfully!"); // Optional: remove alert for smoother flow
+      router.push('/artisan-dashboard'); // <--- THE FIX: Go back to Dashboard
     }
     setSaving(false);
   };
-
   if (loading) return <div className="min-h-screen flex items-center justify-center dark:bg-slate-950"><Loader2 className="animate-spin text-green-600" /></div>;
 
   return (
