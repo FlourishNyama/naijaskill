@@ -1,31 +1,38 @@
 "use client";
 import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation'; // <--- 1. Import this hook
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowLeft, Star, MapPin, ShieldCheck, MessageSquare, Loader2 } from 'lucide-react';
+import { ArrowLeft, Star, MapPin, ShieldCheck, MessageSquare, Loader2, Briefcase } from 'lucide-react';
 import { createClient } from '../../../utils/supabase/client';
 import BookingModal from '@/components/BookingModal'; 
 
-// NOTE: In Next.js 15, params might be a Promise, but for now we treat it as an object
-export default function DynamicProfilePage({ params }: { params: { id: string } }) {
+export default function DynamicProfilePage() {
+  // 2. Use the hook to get the ID safely
+  const params = useParams();
+  const id = params?.id as string; 
+
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [errorMsg, setErrorMsg] = useState(""); // To show us what went wrong
+  const [errorMsg, setErrorMsg] = useState(""); 
 
   useEffect(() => {
+    // If there is no ID yet (page still loading), don't run
+    if (!id) return;
+
     const fetchProfile = async () => {
       const supabase = createClient();
-      console.log("Fetching ID:", params.id); // Debugging Log 1
+      console.log("Fetching ID:", id); 
 
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', params.id)
+        .eq('id', id)
         .single();
       
       if (error) {
-        console.error("Supabase Error:", error); // Debugging Log 2
+        console.error("Supabase Error:", error);
         setErrorMsg(error.message);
       }
 
@@ -35,18 +42,17 @@ export default function DynamicProfilePage({ params }: { params: { id: string } 
       setLoading(false);
     };
     fetchProfile();
-  }, [params.id]);
+  }, [id]);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center dark:bg-slate-950"><Loader2 className="animate-spin text-green-600 w-8 h-8" /></div>;
 
-  // IF ERROR: Show the specific error message on screen so we know what to fix
   if (!profile) return (
     <div className="min-h-screen flex flex-col items-center justify-center dark:bg-slate-950 dark:text-white p-4 text-center">
       <h2 className="text-xl font-bold mb-2">User not found</h2>
-      <p className="text-red-500 bg-red-50 p-3 rounded-lg border border-red-200">
-        Debug Error: {errorMsg || "Unknown error (Data is null)"}
+      <p className="text-red-500 bg-red-50 p-3 rounded-lg border border-red-200 text-sm">
+        Error: {errorMsg || "Could not find profile data"}
       </p>
-      <p className="text-sm text-gray-500 mt-4">ID: {params.id}</p>
+      <p className="text-xs text-gray-500 mt-4">Requested ID: {id}</p>
       <Link href="/browse" className="mt-6 text-green-600 font-bold hover:underline">Go back to Browse</Link>
     </div>
   );
@@ -95,7 +101,7 @@ export default function DynamicProfilePage({ params }: { params: { id: string } 
 
             <div className="flex gap-3 w-full sm:w-auto">
               <Link 
-                href={`/messages?returnTo=/profile/${params.id}`}
+                href={`/messages?returnTo=/profile/${id}`}
                 className="flex-1 sm:flex-none px-6 py-3 bg-white dark:bg-slate-800 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 flex items-center justify-center"
               >
                 <MessageSquare className="w-4 h-4 mr-2" /> Chat
