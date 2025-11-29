@@ -140,7 +140,7 @@ export default function DynamicProfilePage() {
         </div>
       </div>
 
-      <BookingModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <BookingModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} artisanId={params.id} />
 
     </main>
   );
