@@ -23,32 +23,38 @@ export default function AvatarUpload({ uid, url, onUpload }: { uid: string, url:
 
       const file = event.target.files[0];
       const fileExt = file.name.split('.').pop();
-      const filePath = `${uid}-${Math.random()}.${fileExt}`;
+      // Create a unique name: uid + timestamp
+      const filePath = `${uid}-${Date.now()}.${fileExt}`;
 
       // 1. Upload to Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(filePath, file);
 
-      if (uploadError) {
-        throw uploadError;
-      }
+      if (uploadError) throw uploadError;
 
       // 2. Get the Public URL
       const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
       const publicUrl = data.publicUrl;
 
-      // 3. Update User Metadata
-      const { error: updateError } = await supabase.auth.updateUser({
+      // 3. Update User Metadata (Hidden)
+      const { error: authError } = await supabase.auth.updateUser({
         data: { avatar_url: publicUrl }
       });
+      if (authError) throw authError;
 
-      if (updateError) throw updateError;
+      // 4. CRITICAL FIX: Update the Public Profiles Table
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('id', uid);
 
-      // 4. Update UI
+      if (profileError) throw profileError;
+
+      // 5. Update UI
       setAvatarUrl(publicUrl);
       onUpload(publicUrl);
-      alert('Avatar updated!');
+      alert('Avatar updated successfully!');
 
     } catch (error: any) {
       alert('Error uploading avatar: ' + error.message);
@@ -68,10 +74,7 @@ export default function AvatarUpload({ uid, url, onUpload }: { uid: string, url:
             className="object-cover"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-400 font-bold text-2xl">
-            {/* Initials Placeholder */}
-            ?
-          </div>
+          <div className="w-full h-full flex items-center justify-center text-gray-400 font-bold text-2xl">?</div>
         )}
       </div>
       
