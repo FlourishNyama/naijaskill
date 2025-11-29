@@ -1,86 +1,114 @@
 "use client";
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Wallet, Plus, ArrowUpRight, ArrowDownLeft, CreditCard, Smartphone } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft, Wallet, Plus, ArrowUpRight, ArrowDownLeft, Loader2 } from 'lucide-react';
+import { PaystackButton } from 'react-paystack';
 import Navbar from '@/components/Navbar';
+import { createClient } from '../../utils/supabase/client';
 
 export default function WalletPage() {
-  const TRANSACTIONS = [
-    { id: 1, title: "Escrow Deposit (Plumbing)", date: "Today, 10:30 AM", amount: "-₦10,000", type: "debit", status: "Held" },
-    { id: 2, title: "Wallet Top Up (Flutterwave)", date: "Yesterday", amount: "+₦50,000", type: "credit", status: "Success" },
-    { id: 3, title: "Service Fee Refund", date: "24 Nov", amount: "+₦500", type: "credit", status: "Success" },
-    { id: 4, title: "Escrow Release (Painter)", date: "20 Nov", amount: "-₦35,000", type: "debit", status: "Completed" },
-  ];
+  const router = useRouter();
+  const [balance, setBalance] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
+  const [amountToFund, setAmountToFund] = useState(5000); // Default funding amount
+
+  // LOAD BALANCE
+  useEffect(() => {
+    const getData = async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { router.push('/login'); return; }
+      setUser(user);
+
+      // Fetch Wallet
+      const { data: wallet } = await supabase
+        .from('wallets')
+        .select('balance')
+        .eq('user_id', user.id)
+        .single();
+
+      if (wallet) setBalance(wallet.balance);
+      setLoading(false);
+    };
+    getData();
+  }, [router]);
+
+  // PAYSTACK CONFIG
+  const componentProps = {
+    email: user?.email || 'user@example.com',
+    amount: amountToFund * 100, // Paystack works in Kobo (Naira * 100)
+    publicKey: process.env.NEXT_PUBLIC_PAYSTACK_KEY || '', // Your Key
+    text: "Fund Wallet Now",
+    onSuccess: async (reference: any) => {
+      alert("Payment Successful! Reference: " + reference.reference);
+      
+      // UPDATE DATABASE BALANCE (In a real app, do this via Webhook for security)
+      const supabase = createClient();
+      const newBalance = balance + amountToFund;
+      
+      await supabase
+        .from('wallets')
+        .update({ balance: newBalance })
+        .eq('user_id', user.id);
+      
+      setBalance(newBalance);
+    },
+    onClose: () => alert("Transaction canceled"),
+  };
+
+  if (loading) return <div className="min-h-screen flex items-center justify-center dark:bg-slate-950"><Loader2 className="w-10 h-10 animate-spin text-green-600" /></div>;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 pb-20 transition-colors duration-300">
       <Navbar />
 
       <main className="max-w-2xl mx-auto px-4 py-6 mb-20">
+        
         {/* Header */}
         <div className="flex items-center mb-6">
           <Link href="/dashboard" className="mr-3 text-gray-500 hover:text-green-600">
             <ArrowLeft className="w-6 h-6" />
           </Link>
-          <h1 className="text-xl font-bold text-gray-900">My Wallet</h1>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">My Wallet</h1>
         </div>
 
-        {/* 1. BALANCE CARD */}
-        <div className="bg-green-900 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden mb-8">
+        {/* 1. BALANCE CARD (REAL DATA) */}
+        <div className="bg-green-900 dark:bg-green-950 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden mb-8">
           <div className="absolute top-0 right-0 p-8 opacity-10 transform translate-x-4 -translate-y-4">
             <Wallet className="w-32 h-32" />
           </div>
           <div className="relative z-10">
             <p className="text-green-200 text-sm font-medium mb-1">Available Balance</p>
-            <h2 className="text-4xl font-bold mb-6">₦45,000.00</h2>
+            <h2 className="text-4xl font-bold mb-6">₦{balance.toLocaleString()}</h2>
             
-            <div className="flex gap-3">
-              <button className="flex-1 bg-white text-green-900 py-3 rounded-xl font-bold text-sm hover:bg-green-50 transition flex items-center justify-center">
-                <Plus className="w-4 h-4 mr-2" /> Top Up
-              </button>
-              <button className="flex-1 bg-green-800 text-white py-3 rounded-xl font-bold text-sm hover:bg-green-700 transition border border-green-700">
-                Withdraw
-              </button>
+            <div className="flex gap-3 items-center">
+               <div className="flex-1">
+                 <label className="text-[10px] text-green-200 uppercase font-bold">Amount to Add</label>
+                 <input 
+                   type="number" 
+                   value={amountToFund}
+                   onChange={(e) => setAmountToFund(Number(e.target.value))}
+                   className="w-full p-2 rounded text-green-900 font-bold text-sm outline-none"
+                 />
+               </div>
+               
+               {/* PAYSTACK BUTTON */}
+               <div className="flex-1 pt-4">
+                 <PaystackButton 
+                    {...componentProps} 
+                    className="w-full bg-white text-green-900 py-2.5 rounded-lg font-bold text-sm hover:bg-green-50 transition flex items-center justify-center shadow-lg"
+                 />
+               </div>
             </div>
           </div>
         </div>
 
-        {/* 2. QUICK ACTIONS (Payment Methods) */}
-        <h3 className="font-bold text-gray-900 mb-4">Quick Actions</h3>
-        <div className="grid grid-cols-2 gap-4 mb-8">
-          <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center hover:border-green-500 transition cursor-pointer">
-            <div className="w-10 h-10 bg-green-50 rounded-full flex items-center justify-center text-green-600 mb-2">
-              <CreditCard className="w-5 h-5" />
-            </div>
-            <span className="text-xs font-bold text-gray-700">Add Card</span>
-          </div>
-          <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center hover:border-green-500 transition cursor-pointer">
-            <div className="w-10 h-10 bg-orange-50 rounded-full flex items-center justify-center text-orange-600 mb-2">
-              <Smartphone className="w-5 h-5" />
-            </div>
-            <span className="text-xs font-bold text-gray-700">Bank Transfer</span>
-          </div>
-        </div>
-
-        {/* 3. TRANSACTION HISTORY */}
-        <h3 className="font-bold text-gray-900 mb-4">Recent Transactions</h3>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          {TRANSACTIONS.map((tx) => (
-            <div key={tx.id} className="p-4 border-b border-gray-50 last:border-0 flex justify-between items-center hover:bg-gray-50">
-              <div className="flex items-center">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center mr-3 ${tx.type === 'credit' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
-                  {tx.type === 'credit' ? <ArrowDownLeft className="w-5 h-5" /> : <ArrowUpRight className="w-5 h-5" />}
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-gray-900">{tx.title}</p>
-                  <p className="text-xs text-gray-400">{tx.date}</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className={`text-sm font-bold ${tx.type === 'credit' ? 'text-green-600' : 'text-gray-900'}`}>{tx.amount}</p>
-                <p className="text-[10px] bg-gray-100 inline-block px-2 py-0.5 rounded text-gray-500 mt-1">{tx.status}</p>
-              </div>
-            </div>
-          ))}
+        {/* 2. TRANSACTION HISTORY (Placeholder for now) */}
+        <h3 className="font-bold text-gray-900 dark:text-white mb-4">History</h3>
+        <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden p-8 text-center text-gray-400 text-sm">
+           Transactions will appear here.
         </div>
 
       </main>
