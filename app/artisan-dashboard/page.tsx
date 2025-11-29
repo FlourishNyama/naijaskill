@@ -27,6 +27,28 @@ export default function ArtisanDashboard() {
         return;
       }
       setUser(user);
+      // ... inside existing useEffect ...
+      if (error || !user) {
+        router.push('/login');
+      } else {
+        setUser(user);
+        
+        // --- NEW CHECK: IS PROFILE COMPLETE? ---
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('job_title, hourly_rate')
+          .eq('id', user.id)
+          .single();
+
+        if (profile && (!profile.job_title || !profile.hourly_rate)) {
+          // If profile is incomplete, force them to settings
+          router.push('/artisan-settings');
+          alert("Please complete your profile to start accepting jobs.");
+        }
+        // ---------------------------------------
+
+        setLoading(false);
+      }
 
       // FETCH BOOKINGS (Requests)
       const { data: bookings } = await supabase
