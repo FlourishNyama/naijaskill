@@ -44,11 +44,11 @@ export default function ArtisanSettingsPage() {
     getData();
   }, [router]);
 
-  // 2. Save Data & Redirect
+  // 2. Save Data & UPGRADE ROLE
   const handleSave = async () => {
     setSaving(true);
     
-    // Check required fields before saving
+    // Check required fields
     if (!jobTitle || !rate) {
         alert("Please enter your Job Title and Hourly Rate.");
         setSaving(false);
@@ -61,14 +61,14 @@ export default function ArtisanSettingsPage() {
         job_title: jobTitle,
         hourly_rate: parseFloat(rate),
         location: location,
-        bio: bio
+        bio: bio,
+        role: 'artisan' // <--- THIS IS THE FIX! It makes them visible in Browse.
       })
       .eq('id', user.id);
 
     if (error) {
       alert("Error: " + error.message);
     } else {
-      // SUCCESS! GO BACK TO DASHBOARD
       router.push('/artisan-dashboard');
     }
     setSaving(false);
