@@ -1,152 +1,146 @@
 "use client";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
-import { Clock, CheckCircle, MessageSquare, MapPin, Calendar, ShieldCheck, ArrowLeft } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Clock, CheckCircle, MessageSquare, MapPin, Calendar, ShieldCheck, ArrowLeft, Loader2, User } from 'lucide-react';
 import Navbar from '@/components/Navbar';
+import { createClient } from '../../utils/supabase/client';
 
 export default function MyJobsPage() {
   const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active');
+  const [jobs, setJobs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
-  const JOBS = [
-    {
-      id: 1,
-      artisan: "Emmanuel Okafor",
-      role: "Plumber",
-      img: "https://images.unsplash.com/photo-1581578731117-104f2a8d23e9?q=80&w=2940&auto=format&fit=crop",
-      title: "Kitchen Sink Leak Repair",
-      date: "Today, 2:00 PM",
-      location: "Lekki Phase 1",
-      price: "10,000",
-      status: "In Progress",
-      type: "active"
-    },
-    {
-      id: 2,
-      artisan: "Aisha Bello",
-      role: "Photographer",
-      img: "https://images.unsplash.com/photo-1554048612-387768052bf7?q=80&w=2835&auto=format&fit=crop",
-      title: "Birthday Photo Session",
-      date: "Nov 12, 2024",
-      location: "Abuja",
-      price: "45,000",
-      status: "Completed",
-      type: "completed"
-    },
-    {
-      id: 3,
-      artisan: "Tunde Bakare",
-      role: "Electrician",
-      img: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=80&w=2938&auto=format&fit=crop",
-      title: "Generator Wiring",
-      date: "Oct 28, 2024",
-      location: "Surulere",
-      price: "8,500",
-      status: "Cancelled",
-      type: "completed"
-    }
-  ];
+  useEffect(() => {
+    const fetchJobs = async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        router.push('/login');
+        return;
+      }
 
-  const filteredJobs = JOBS.filter(job => job.type === activeTab);
+      // Fetch Bookings where I am the Client
+      const { data, error } = await supabase
+        .from('bookings')
+        .select('*')
+        .eq('client_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (data) {
+        setJobs(data);
+      }
+      setLoading(false);
+    };
+
+    fetchJobs();
+  }, [router]);
+
+  // Filter based on status
+  const filteredJobs = jobs.filter(job => {
+    if (activeTab === 'active') return job.status === 'pending' || job.status === 'accepted' || job.status === 'in_progress';
+    return job.status === 'completed' || job.status === 'rejected';
+  });
+
+  if (loading) return <div className="min-h-screen flex items-center justify-center dark:bg-slate-950"><Loader2 className="w-10 h-10 animate-spin text-green-600" /></div>;
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 pb-20 transition-colors duration-300">
       <Navbar />
 
       <main className="max-w-3xl mx-auto px-4 py-8">
         
-        {/* Header with BACK BUTTON */}
+        {/* Header */}
         <div className="mb-6 flex items-center">
-          <Link href="/dashboard" className="mr-4 text-gray-500 hover:text-green-600 transition p-1 rounded-full hover:bg-gray-100">
+          <Link href="/dashboard" className="mr-4 text-gray-500 hover:text-green-600 transition p-1 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800">
             <ArrowLeft className="w-6 h-6" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">My Jobs</h1>
-            <p className="text-gray-500 text-sm">Track your ongoing and past projects.</p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">My Jobs</h1>
+            <p className="text-gray-500 dark:text-gray-400 text-sm">Track your ongoing and past projects.</p>
           </div>
         </div>
 
-        {/* TABS (Mobile Friendly) */}
-        <div className="bg-white p-1 rounded-xl shadow-sm flex mb-6">
+        {/* TABS */}
+        <div className="bg-white dark:bg-slate-900 p-1 rounded-xl shadow-sm flex mb-6 border border-gray-100 dark:border-gray-800">
           <button 
             onClick={() => setActiveTab('active')}
-            className={`flex-1 py-3 text-sm font-bold rounded-lg transition ${activeTab === 'active' ? 'bg-green-50 text-green-700' : 'text-gray-500 hover:text-gray-900'}`}
+            className={`flex-1 py-3 text-sm font-bold rounded-lg transition ${activeTab === 'active' ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
           >
-            Active (1)
+            Active
           </button>
           <button 
             onClick={() => setActiveTab('completed')}
-            className={`flex-1 py-3 text-sm font-bold rounded-lg transition ${activeTab === 'completed' ? 'bg-gray-100 text-gray-900' : 'text-gray-500 hover:text-gray-900'}`}
+            className={`flex-1 py-3 text-sm font-bold rounded-lg transition ${activeTab === 'completed' ? 'bg-gray-100 dark:bg-slate-800 text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
           >
-            History (2)
+            History
           </button>
         </div>
 
         {/* JOB LIST */}
         <div className="space-y-4">
-          {filteredJobs.map((job) => (
-            <div key={job.id} className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-              
-              {/* Top Section: Artisan Info */}
-              <div className="p-4 flex items-start gap-4 border-b border-gray-50">
-                <div className="relative w-12 h-12 rounded-full overflow-hidden bg-gray-100 shrink-0">
-                  <Image src={job.img} alt={job.artisan} fill className="object-cover" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-bold text-gray-900 text-sm">{job.artisan}</h3>
-                      <p className="text-xs text-green-600 font-medium uppercase">{job.role}</p>
-                    </div>
-                    <span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase ${
-                      job.status === "In Progress" ? "bg-orange-50 text-orange-600" :
-                      job.status === "Completed" ? "bg-green-50 text-green-600" :
-                      "bg-red-50 text-red-600"
-                    }`}>
-                      {job.status}
-                    </span>
+          {filteredJobs.length === 0 ? (
+            <div className="text-center py-10 text-gray-400 text-sm">No jobs found in this tab.</div>
+          ) : (
+            filteredJobs.map((job) => (
+              <div key={job.id} className="bg-white dark:bg-slate-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
+                
+                {/* Top Section */}
+                <div className="p-4 flex items-start gap-4 border-b border-gray-50 dark:border-gray-800">
+                  <div className="relative w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-700 dark:text-green-400 font-bold shrink-0">
+                    <User className="w-6 h-6" />
                   </div>
-                  <h4 className="font-bold text-gray-800 mt-2">{job.title}</h4>
+                  <div className="flex-1">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-bold text-gray-900 dark:text-white text-sm">Job #{job.id.substring(0,6)}</h3>
+                        <p className="text-xs text-green-600 dark:text-green-400 font-medium uppercase">Budget: ₦{job.budget?.toLocaleString()}</p>
+                      </div>
+                      <span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase ${
+                        job.status === "accepted" ? "bg-orange-50 text-orange-600" :
+                        job.status === "completed" ? "bg-green-50 text-green-600" :
+                        "bg-gray-100 text-gray-600"
+                      }`}>
+                        {job.status}
+                      </span>
+                    </div>
+                    <h4 className="font-bold text-gray-800 dark:text-gray-200 mt-2">{job.job_description}</h4>
+                  </div>
                 </div>
-              </div>
 
-              {/* Middle Section: Job Details */}
-              <div className="p-4 bg-gray-50/50 grid grid-cols-2 gap-y-3">
-                <div className="flex items-center text-xs text-gray-500">
-                  <Calendar className="w-3.5 h-3.5 mr-2 text-gray-400" />
-                  {job.date}
+                {/* Middle Section */}
+                <div className="p-4 bg-gray-50/50 dark:bg-slate-800/30 grid grid-cols-2 gap-y-3">
+                  <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
+                    <Calendar className="w-3.5 h-3.5 mr-2 text-gray-400" />
+                    {job.date}
+                  </div>
+                  <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
+                    <MapPin className="w-3.5 h-3.5 mr-2 text-gray-400" />
+                    {job.location}
+                  </div>
+                  <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 col-span-2">
+                    <ShieldCheck className="w-3.5 h-3.5 mr-2 text-green-500" />
+                    Escrow Secure
+                  </div>
                 </div>
-                <div className="flex items-center text-xs text-gray-500">
-                  <MapPin className="w-3.5 h-3.5 mr-2 text-gray-400" />
-                  {job.location}
-                </div>
-                <div className="flex items-center text-xs text-gray-500">
-                  <ShieldCheck className="w-3.5 h-3.5 mr-2 text-green-500" />
-                  Escrow: ₦{job.price}
-                </div>
-              </div>
 
-              {/* Bottom Section: Actions */}
-              {activeTab === 'active' && (
-                <div className="p-3 flex gap-3">
-                  <Link href="/messages?returnTo=/jobs" className="flex-1 bg-white border border-gray-200 text-gray-700 py-2.5 rounded-lg text-sm font-bold flex items-center justify-center hover:bg-gray-50 transition">
-                    <MessageSquare className="w-4 h-4 mr-2" /> Chat
-                  </Link>
-                  <button className="flex-1 bg-green-600 text-white py-2.5 rounded-lg text-sm font-bold flex items-center justify-center hover:bg-green-700 transition shadow-lg shadow-green-500/20">
-                    <CheckCircle className="w-4 h-4 mr-2" /> Release Funds
-                  </button>
-                </div>
-              )}
-              
-              {activeTab === 'completed' && job.status === "Completed" && (
-                <div className="p-3">
-                  <button className="w-full bg-gray-900 text-white py-2.5 rounded-lg text-sm font-bold hover:bg-black transition">
-                    Book Again
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
+                {/* Actions (Only if active) */}
+                {activeTab === 'active' && (
+                  <div className="p-3 flex gap-3">
+                    <Link href={`/messages?returnTo=/jobs`} className="flex-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 py-2.5 rounded-lg text-sm font-bold flex items-center justify-center hover:bg-gray-50 dark:hover:bg-slate-700 transition">
+                      <MessageSquare className="w-4 h-4 mr-2" /> Chat
+                    </Link>
+                    {/* The Release Funds button would trigger a Paystack API in the real world */}
+                    <button className="flex-1 bg-green-600 text-white py-2.5 rounded-lg text-sm font-bold flex items-center justify-center hover:bg-green-700 transition shadow-lg shadow-green-500/20">
+                      <CheckCircle className="w-4 h-4 mr-2" /> Release Funds
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))
+          )}
         </div>
 
       </main>
