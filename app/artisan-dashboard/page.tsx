@@ -19,7 +19,8 @@ import {
   TrendingUp,
   Repeat,
   Loader2,
-  Search
+  Search,
+  ChevronDown
 } from 'lucide-react';
 import { createClient } from '../../utils/supabase/client';
 
@@ -27,6 +28,7 @@ export default function ArtisanDashboard() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -120,8 +122,8 @@ export default function ArtisanDashboard() {
       {/* 3. MAIN CONTENT AREA */}
       <main className="flex-1 md:ml-64 p-4 md:p-8">
         
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6 md:mb-8 mt-4 md:mt-0">
+        {/* Header with PROFILE DROPDOWN */}
+        <div className="flex justify-between items-center mb-6 md:mb-8 mt-4 md:mt-0 relative z-20">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Artisan Dashboard</h1>
             <p className="text-sm md:text-base text-gray-500 dark:text-gray-400">
@@ -129,32 +131,48 @@ export default function ArtisanDashboard() {
             </p>
           </div>
           
-          <div className="flex items-center gap-3">
-            {/* MOBILE LOGOUT BUTTON */}
-            <button onClick={handleLogout} className="md:hidden p-2 text-red-500 hover:bg-red-50 rounded-full">
-              <LogOut className="w-5 h-5" />
-            </button>
+          <div className="relative">
+             <button 
+                onClick={() => setIsProfileOpen(!isProfileOpen)}
+                className="flex items-center gap-2 focus:outline-none"
+             >
+                <div className="h-10 w-10 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center text-green-700 dark:text-green-400 font-bold border-2 border-white dark:border-slate-800 shadow-sm overflow-hidden">
+                    {user?.user_metadata?.avatar_url ? (
+                      <Image src={user.user_metadata.avatar_url} alt="Profile" fill className="object-cover" />
+                    ) : (
+                      user?.user_metadata?.full_name?.substring(0, 2).toUpperCase() || "AR"
+                    )}
+                </div>
+                <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400 md:hidden" />
+             </button>
 
-            {/* MOBILE SWITCH BUTTON */}
-             <Link href="/dashboard" className="md:hidden p-2 bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-400 rounded-full border border-gray-200 dark:border-slate-700">
-                <Repeat className="w-5 h-5" />
-             </Link>
+             {/* DROPDOWN MENU */}
+             {isProfileOpen && (
+               <>
+                 <div className="fixed inset-0 z-10" onClick={() => setIsProfileOpen(false)}></div>
+                 <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-gray-100 dark:border-gray-800 z-20 overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top-right">
+                    <div className="p-4 border-b border-gray-100 dark:border-gray-800">
+                      <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{user?.user_metadata?.full_name}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email}</p>
+                    </div>
+                    
+                    <div className="p-2 space-y-1">
+                      <Link href="/dashboard" className="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg">
+                        <Repeat className="w-4 h-4 mr-2" /> Switch to Client
+                      </Link>
+                      <Link href="/artisan-settings" className="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg">
+                        <Settings className="w-4 h-4 mr-2" /> Settings
+                      </Link>
+                    </div>
 
-            {/* DYNAMIC PROFILE PICTURE */}
-            <div className="relative w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden border-2 border-green-500 p-0.5 bg-gray-100 dark:bg-slate-800">
-               {user?.user_metadata?.avatar_url ? (
-                 <Image 
-                   src={user.user_metadata.avatar_url} 
-                   alt="Profile" 
-                   fill 
-                   className="object-cover rounded-full"
-                 />
-               ) : (
-                 <div className="w-full h-full flex items-center justify-center text-green-700 dark:text-green-400 font-bold">
-                   {user?.user_metadata?.full_name?.substring(0, 2).toUpperCase() || "AR"}
+                    <div className="p-2 border-t border-gray-100 dark:border-gray-800">
+                      <button onClick={handleLogout} className="flex w-full items-center px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg font-medium">
+                        <LogOut className="w-4 h-4 mr-2" /> Log Out
+                      </button>
+                    </div>
                  </div>
-               )}
-            </div>
+               </>
+             )}
           </div>
         </div>
 
@@ -195,8 +213,6 @@ export default function ArtisanDashboard() {
         </div>
 
         {/* --- NEW JOB REQUESTS --- */}
-        <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">New Job Requests (1)</h2>
-        
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden mb-8">
           <div className="p-4 md:p-6 flex flex-col md:flex-row gap-4 md:gap-6 md:items-center">
             <div className="flex items-start gap-4 flex-1">
