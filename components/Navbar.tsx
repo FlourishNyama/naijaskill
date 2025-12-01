@@ -10,8 +10,7 @@ import {
   LogOut, 
   Settings, 
   Search, 
-  ChevronDown,
-  User as UserIcon 
+  ChevronDown
 } from 'lucide-react';
 import { createClient } from '../utils/supabase/client';
 
@@ -19,6 +18,7 @@ export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false); // Mobile Menu
   const [isProfileOpen, setIsProfileOpen] = useState(false); // Profile Dropdown
   const [user, setUser] = useState<any>(null);
+  const [isScrolled, setIsScrolled] = useState(false); // New state for scroll detection
   const router = useRouter();
   const supabase = createClient();
 
@@ -31,7 +31,21 @@ export default function Navbar() {
     checkUser();
   }, []);
 
-  // 2. HANDLE LOGOUT
+  // 2. HANDLE SCROLL DETECTION FOR GLASS EFFECT
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 10) {
+        setIsScrolled(true);
+      } else {
+        setIsScrolled(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // 3. HANDLE LOGOUT
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUser(null);
@@ -42,8 +56,15 @@ export default function Navbar() {
   // Helper to determine dashboard link based on role
   const dashboardLink = user?.user_metadata?.role === 'artisan' ? '/artisan-dashboard' : '/dashboard';
 
+  // DYNAMIC NAVBAR CLASSES based on scroll
+  const navbarClasses = `sticky top-0 z-50 w-full border-b border-gray-100 dark:border-gray-800 shadow-sm transition-all duration-300 ${
+    isScrolled 
+      ? 'bg-white/80 dark:bg-slate-950/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/60' 
+      : 'bg-white dark:bg-slate-950'
+  }`;
+
   return (
-    <nav className="sticky top-0 z-50 w-full bg-white dark:bg-slate-950 border-b border-gray-100 dark:border-gray-800 shadow-sm transition-colors duration-300">
+    <nav className={navbarClasses}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           
@@ -93,16 +114,18 @@ export default function Navbar() {
               <div className="relative">
                 <button 
                   onClick={() => setIsProfileOpen(!isProfileOpen)}
-                  className="flex items-center gap-2 focus:outline-none"
+                  className="flex items-center gap-2 focus:outline-none group"
                 >
-                  <div className="relative h-10 w-10 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center text-green-700 dark:text-green-400 font-bold border-2 border-white dark:border-slate-800 shadow-sm overflow-hidden">
+                  {/* Profile Image Circle */}
+                  <div className="relative h-10 w-10 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center text-green-700 dark:text-green-400 font-bold border-2 border-white dark:border-slate-800 shadow-sm overflow-hidden transition-transform group-hover:scale-105">
                       {user?.user_metadata?.avatar_url ? (
                         <Image src={user.user_metadata.avatar_url} alt="Profile" fill className="object-cover" />
                       ) : (
                         <span>{user?.user_metadata?.full_name?.substring(0, 2).toUpperCase() || "CN"}</span>
                       )}
                   </div>
-                  <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400 hidden md:block" />
+                  {/* Dropdown Icon - Now visible on all devices */}
+                  <ChevronDown className={`w-4 h-4 text-gray-500 dark:text-gray-400 transition-transform duration-200 ${isProfileOpen ? 'rotate-180' : ''}`} />
                 </button>
 
                 {/* THE DROPDOWN MENU */}
@@ -119,14 +142,14 @@ export default function Navbar() {
                         
                         {/* Menu Items */}
                         <div className="p-2 space-y-1">
-                          <Link href={dashboardLink} className="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg">
+                          <Link href={dashboardLink} className="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg" onClick={() => setIsProfileOpen(false)}>
                             <LayoutDashboard className="w-4 h-4 mr-2" /> Dashboard
                           </Link>
-                          <Link href="/browse" className="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg">
+                          <Link href="/browse" className="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg" onClick={() => setIsProfileOpen(false)}>
                             <Search className="w-4 h-4 mr-2" /> Browse Artisans
                           </Link>
                           {/* Determine Settings Link based on role */}
-                          <Link href={user?.user_metadata?.role === 'artisan' ? "/artisan-settings" : "/settings"} className="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg">
+                          <Link href={user?.user_metadata?.role === 'artisan' ? "/artisan-settings" : "/settings"} className="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg" onClick={() => setIsProfileOpen(false)}>
                             <Settings className="w-4 h-4 mr-2" /> Settings
                           </Link>
                         </div>
