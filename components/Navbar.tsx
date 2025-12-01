@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter, usePathname } from 'next/navigation'; // <--- Added usePathname
+import { useRouter, usePathname } from 'next/navigation';
 import { 
   Menu, 
   X, 
@@ -11,7 +11,9 @@ import {
   LogOut, 
   Settings, 
   Search, 
-  ChevronDown
+  ChevronDown,
+  Briefcase, 
+  Repeat
 } from 'lucide-react';
 import { createClient } from '../utils/supabase/client';
 
@@ -22,7 +24,7 @@ export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false); 
   
   const router = useRouter();
-  const pathname = usePathname(); // <--- Get current location
+  const pathname = usePathname(); // <--- We use this to know where we are
   const supabase = createClient();
 
   useEffect(() => {
@@ -48,17 +50,22 @@ export default function Navbar() {
     setIsProfileOpen(false);
   };
 
-  // --- SMART LINK LOGIC ---
-  // 1. Where does the user belong? (Client Dash vs Artisan Dash)
-  const userDashboard = user?.user_metadata?.role === 'artisan' ? '/artisan-dashboard' : '/dashboard';
+  // --- SMART LOGIC: CLIENT VS ARTISAN MODE ---
   
-  // 2. Are we currently inside a Dashboard?
-  const isOnDashboard = pathname?.includes('dashboard');
+  // 1. Determine Current Mode based on URL
+  const isArtisanMode = pathname?.includes('artisan');
 
-  // 3. Decide what the button should be
-  const navTargetLink = isOnDashboard ? '/' : userDashboard;
-  const navTargetLabel = isOnDashboard ? 'Home' : 'Dashboard';
-  const NavTargetIcon = isOnDashboard ? Home : LayoutDashboard;
+  // 2. Define Links based on Mode
+  const dashboardLink = isArtisanMode ? '/artisan-dashboard' : '/dashboard';
+  
+  const switchLink = isArtisanMode ? '/dashboard' : '/artisan-dashboard';
+  const switchLabel = isArtisanMode ? 'Switch to Client' : 'Switch to Artisan';
+  
+  const settingsLink = isArtisanMode ? '/artisan-settings' : '/settings';
+  
+  const browseLink = isArtisanMode ? '/find-work' : '/browse';
+  const browseLabel = isArtisanMode ? 'Find Work (Jobs)' : 'Browse Artisans';
+  const BrowseIcon = isArtisanMode ? Briefcase : Search;
 
   return (
     <nav className={`sticky top-0 z-50 w-full border-b ${
@@ -104,11 +111,6 @@ export default function Navbar() {
             /* --- SCENARIO B: USER IS LOGGED IN --- */
             <div className="flex items-center gap-4">
               
-              {/* Desktop Only: Browse Link */}
-              <Link href="/browse" className="hidden md:block text-gray-600 dark:text-gray-300 hover:text-green-600 font-medium mr-2">
-                Browse Artisans
-              </Link>
-
               {/* PROFILE DROPDOWN */}
               <div className="relative">
                 <button 
@@ -128,32 +130,47 @@ export default function Navbar() {
                 {isProfileOpen && (
                   <>
                     <div className="fixed inset-0 z-10" onClick={() => setIsProfileOpen(false)}></div>
-                    <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-gray-100 dark:border-gray-800 z-20 overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top-right">
+                    <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-gray-100 dark:border-gray-800 z-20 overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top-right">
                         
+                        {/* User Info Header */}
                         <div className="p-4 border-b border-gray-100 dark:border-gray-800">
                           <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{user?.user_metadata?.full_name}</p>
                           <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email}</p>
+                          <p className="text-[10px] text-green-600 font-bold uppercase mt-1 tracking-wide">
+                            {isArtisanMode ? 'Artisan Mode' : 'Client Mode'}
+                          </p>
                         </div>
                         
+                        {/* Menu Items */}
                         <div className="p-2 space-y-1">
-                          {/* --- THE SMART LINK --- */}
-                          <Link 
-                            href={navTargetLink} 
-                            className="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg" 
-                            onClick={() => setIsProfileOpen(false)}
-                          >
-                            <NavTargetIcon className="w-4 h-4 mr-2" /> {navTargetLabel}
+                          
+                          {/* 1. Go to Home */}
+                          <Link href="/" className="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg" onClick={() => setIsProfileOpen(false)}>
+                            <Home className="w-4 h-4 mr-2" /> Home
                           </Link>
-                          {/* ------------------- */}
 
-                          <Link href="/browse" className="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg" onClick={() => setIsProfileOpen(false)}>
-                            <Search className="w-4 h-4 mr-2" /> Browse Artisans
+                          {/* 2. Go to Dashboard (Current Role) */}
+                          <Link href={dashboardLink} className="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg" onClick={() => setIsProfileOpen(false)}>
+                            <LayoutDashboard className="w-4 h-4 mr-2" /> Dashboard
                           </Link>
-                          <Link href={user?.user_metadata?.role === 'artisan' ? "/artisan-settings" : "/settings"} className="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg" onClick={() => setIsProfileOpen(false)}>
+
+                          {/* 3. Browse/Find Work (Changes based on Role) */}
+                          <Link href={browseLink} className="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg" onClick={() => setIsProfileOpen(false)}>
+                            <BrowseIcon className="w-4 h-4 mr-2" /> {browseLabel}
+                          </Link>
+
+                          {/* 4. Switch Mode */}
+                          <Link href={switchLink} className="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg" onClick={() => setIsProfileOpen(false)}>
+                            <Repeat className="w-4 h-4 mr-2" /> {switchLabel}
+                          </Link>
+
+                          {/* 5. Settings (Changes based on Role) */}
+                          <Link href={settingsLink} className="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg" onClick={() => setIsProfileOpen(false)}>
                             <Settings className="w-4 h-4 mr-2" /> Settings
                           </Link>
                         </div>
 
+                        {/* Logout */}
                         <div className="p-2 border-t border-gray-100 dark:border-gray-800">
                           <button onClick={handleLogout} className="flex w-full items-center px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg font-medium">
                             <LogOut className="w-4 h-4 mr-2" /> Log Out
@@ -168,17 +185,29 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* MOBILE MENU (Not logged in) */}
+      {/* MOBILE MENU (Only shown when NOT logged in) */}
       {isOpen && !user && (
         <div className="md:hidden bg-white dark:bg-slate-900 border-t border-gray-100 dark:border-gray-800 absolute w-full left-0 animate-in slide-in-from-top-5 duration-200 shadow-xl">
           <div className="px-4 pt-2 pb-6 space-y-2">
-            <Link href="/browse" className="block px-3 py-4 rounded-md text-base font-medium text-gray-700 dark:text-gray-200 hover:text-green-600 hover:bg-green-50 dark:hover:bg-slate-800" onClick={() => setIsOpen(false)}>
+            <Link 
+              href="/browse" 
+              className="block px-3 py-4 rounded-md text-base font-medium text-gray-700 dark:text-gray-200 hover:text-green-600 hover:bg-green-50 dark:hover:bg-slate-800"
+              onClick={() => setIsOpen(false)}
+            >
               Browse Artisans
             </Link>
-            <Link href="/login" className="block px-3 py-4 rounded-md text-base font-medium text-gray-700 dark:text-gray-200 hover:text-green-600 hover:bg-green-50 dark:hover:bg-slate-800" onClick={() => setIsOpen(false)}>
+            <Link 
+              href="/login" 
+              className="block px-3 py-4 rounded-md text-base font-medium text-gray-700 dark:text-gray-200 hover:text-green-600 hover:bg-green-50 dark:hover:bg-slate-800"
+              onClick={() => setIsOpen(false)}
+            >
               Log In
             </Link>
-            <Link href="/signup" className="block px-3 py-4 mt-4 text-center rounded-lg text-base font-bold text-white bg-green-600 hover:bg-green-700 shadow-md" onClick={() => setIsOpen(false)}>
+            <Link 
+              href="/signup" 
+              className="block px-3 py-4 mt-4 text-center rounded-lg text-base font-bold text-white bg-green-600 hover:bg-green-700 shadow-md"
+              onClick={() => setIsOpen(false)}
+            >
               Join Now
             </Link>
           </div>
