@@ -24,7 +24,7 @@ export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false); 
   
   const router = useRouter();
-  const pathname = usePathname(); // <--- We use this to know where we are
+  const pathname = usePathname(); 
   const supabase = createClient();
 
   useEffect(() => {
@@ -50,21 +50,17 @@ export default function Navbar() {
     setIsProfileOpen(false);
   };
 
-  // --- SMART LOGIC: CLIENT VS ARTISAN MODE ---
-  
-  // 1. Determine Current Mode based on URL
+  // --- SMART LOGIC ---
   const isArtisanMode = pathname?.includes('artisan');
 
-  // 2. Define Links based on Mode
+  // Define Destinations
   const dashboardLink = isArtisanMode ? '/artisan-dashboard' : '/dashboard';
-  
+  const settingsLink = isArtisanMode ? '/artisan-settings' : '/settings';
   const switchLink = isArtisanMode ? '/dashboard' : '/artisan-dashboard';
   const switchLabel = isArtisanMode ? 'Switch to Client' : 'Switch to Artisan';
   
-  const settingsLink = isArtisanMode ? '/artisan-settings' : '/settings';
-  
   const browseLink = isArtisanMode ? '/find-work' : '/browse';
-  const browseLabel = isArtisanMode ? 'Find Work (Jobs)' : 'Browse Artisans';
+  const browseLabel = isArtisanMode ? 'Find Work' : 'Browse Artisans';
   const BrowseIcon = isArtisanMode ? Briefcase : Search;
 
   return (
@@ -111,6 +107,13 @@ export default function Navbar() {
             /* --- SCENARIO B: USER IS LOGGED IN --- */
             <div className="flex items-center gap-4">
               
+              {/* Desktop: Show Browse Link only if NOT on browse page */}
+              {pathname !== browseLink && (
+                <Link href={browseLink} className="hidden md:block text-gray-600 dark:text-gray-300 hover:text-green-600 font-medium mr-2">
+                  {browseLabel}
+                </Link>
+              )}
+
               {/* PROFILE DROPDOWN */}
               <div className="relative">
                 <button 
@@ -132,7 +135,6 @@ export default function Navbar() {
                     <div className="fixed inset-0 z-10" onClick={() => setIsProfileOpen(false)}></div>
                     <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-gray-100 dark:border-gray-800 z-20 overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top-right">
                         
-                        {/* User Info Header */}
                         <div className="p-4 border-b border-gray-100 dark:border-gray-800">
                           <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{user?.user_metadata?.full_name}</p>
                           <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email}</p>
@@ -141,36 +143,42 @@ export default function Navbar() {
                           </p>
                         </div>
                         
-                        {/* Menu Items */}
                         <div className="p-2 space-y-1">
                           
-                          {/* 1. Go to Home */}
-                          <Link href="/" className="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg" onClick={() => setIsProfileOpen(false)}>
-                            <Home className="w-4 h-4 mr-2" /> Home
-                          </Link>
+                          {/* 1. HOME: Show only if NOT on Home Page */}
+                          {pathname !== '/' && (
+                            <Link href="/" className="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg" onClick={() => setIsProfileOpen(false)}>
+                              <Home className="w-4 h-4 mr-2" /> Home
+                            </Link>
+                          )}
 
-                          {/* 2. Go to Dashboard (Current Role) */}
-                          <Link href={dashboardLink} className="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg" onClick={() => setIsProfileOpen(false)}>
-                            <LayoutDashboard className="w-4 h-4 mr-2" /> Dashboard
-                          </Link>
+                          {/* 2. DASHBOARD: Show only if NOT on Dashboard */}
+                          {pathname !== dashboardLink && (
+                            <Link href={dashboardLink} className="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg" onClick={() => setIsProfileOpen(false)}>
+                              <LayoutDashboard className="w-4 h-4 mr-2" /> Dashboard
+                            </Link>
+                          )}
 
-                          {/* 3. Browse/Find Work (Changes based on Role) */}
-                          <Link href={browseLink} className="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg" onClick={() => setIsProfileOpen(false)}>
-                            <BrowseIcon className="w-4 h-4 mr-2" /> {browseLabel}
-                          </Link>
+                          {/* 3. BROWSE: Show only if NOT on Browse Page */}
+                          {pathname !== browseLink && (
+                            <Link href={browseLink} className="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg" onClick={() => setIsProfileOpen(false)}>
+                              <BrowseIcon className="w-4 h-4 mr-2" /> {browseLabel}
+                            </Link>
+                          )}
 
-                          {/* 4. Switch Mode */}
+                          {/* 4. SWITCH MODE: Always show */}
                           <Link href={switchLink} className="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg" onClick={() => setIsProfileOpen(false)}>
                             <Repeat className="w-4 h-4 mr-2" /> {switchLabel}
                           </Link>
 
-                          {/* 5. Settings (Changes based on Role) */}
-                          <Link href={settingsLink} className="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg" onClick={() => setIsProfileOpen(false)}>
-                            <Settings className="w-4 h-4 mr-2" /> Settings
-                          </Link>
+                          {/* 5. SETTINGS: Show only if NOT on Settings */}
+                          {pathname !== settingsLink && (
+                            <Link href={settingsLink} className="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg" onClick={() => setIsProfileOpen(false)}>
+                              <Settings className="w-4 h-4 mr-2" /> Settings
+                            </Link>
+                          )}
                         </div>
 
-                        {/* Logout */}
                         <div className="p-2 border-t border-gray-100 dark:border-gray-800">
                           <button onClick={handleLogout} className="flex w-full items-center px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg font-medium">
                             <LogOut className="w-4 h-4 mr-2" /> Log Out
@@ -189,25 +197,13 @@ export default function Navbar() {
       {isOpen && !user && (
         <div className="md:hidden bg-white dark:bg-slate-900 border-t border-gray-100 dark:border-gray-800 absolute w-full left-0 animate-in slide-in-from-top-5 duration-200 shadow-xl">
           <div className="px-4 pt-2 pb-6 space-y-2">
-            <Link 
-              href="/browse" 
-              className="block px-3 py-4 rounded-md text-base font-medium text-gray-700 dark:text-gray-200 hover:text-green-600 hover:bg-green-50 dark:hover:bg-slate-800"
-              onClick={() => setIsOpen(false)}
-            >
+            <Link href="/browse" className="block px-3 py-4 rounded-md text-base font-medium text-gray-700 dark:text-gray-200 hover:text-green-600 hover:bg-green-50 dark:hover:bg-slate-800" onClick={() => setIsOpen(false)}>
               Browse Artisans
             </Link>
-            <Link 
-              href="/login" 
-              className="block px-3 py-4 rounded-md text-base font-medium text-gray-700 dark:text-gray-200 hover:text-green-600 hover:bg-green-50 dark:hover:bg-slate-800"
-              onClick={() => setIsOpen(false)}
-            >
+            <Link href="/login" className="block px-3 py-4 rounded-md text-base font-medium text-gray-700 dark:text-gray-200 hover:text-green-600 hover:bg-green-50 dark:hover:bg-slate-800" onClick={() => setIsOpen(false)}>
               Log In
             </Link>
-            <Link 
-              href="/signup" 
-              className="block px-3 py-4 mt-4 text-center rounded-lg text-base font-bold text-white bg-green-600 hover:bg-green-700 shadow-md"
-              onClick={() => setIsOpen(false)}
-            >
+            <Link href="/signup" className="block px-3 py-4 mt-4 text-center rounded-lg text-base font-bold text-white bg-green-600 hover:bg-green-700 shadow-md" onClick={() => setIsOpen(false)}>
               Join Now
             </Link>
           </div>
