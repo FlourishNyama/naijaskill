@@ -1,13 +1,17 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation'; // <--- Import this
 import Link from 'next/link';
 import Image from 'next/image';
 import { Search, MapPin, Star, ShieldCheck, Loader2 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { createClient } from '../../utils/supabase/client';
 
-export default function BrowsePage() {
-  const [searchTerm, setSearchTerm] = useState("");
+function BrowseContent() {
+  const searchParams = useSearchParams();
+  const initialQuery = searchParams.get('q') || ""; // <--- Catch the search word
+
+  const [searchTerm, setSearchTerm] = useState(initialQuery); // Set it as default
   const [category, setCategory] = useState("All");
   const [artisans, setArtisans] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,9 +39,13 @@ export default function BrowsePage() {
   }, [category]);
 
   const filteredArtisans = artisans.filter((artisan) => {
+    // If no search term, return everything
     if (!searchTerm) return true;
+    
+    // Fuzzy search: Check Name OR Job Title
     const nameMatch = artisan.full_name?.toLowerCase().includes(searchTerm.toLowerCase());
     const jobMatch = artisan.job_title?.toLowerCase().includes(searchTerm.toLowerCase());
+    
     return nameMatch || jobMatch;
   });
 
@@ -56,6 +64,7 @@ export default function BrowsePage() {
             <input 
               type="text" 
               placeholder="Search artisans (e.g. Emmanuel)..." 
+              value={searchTerm} // <--- Controlled input
               className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-slate-900 text-gray-900 dark:text-white shadow-sm focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500"
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -100,7 +109,6 @@ export default function BrowsePage() {
                            {artisan.full_name?.substring(0,1) || "A"}
                          </div>
                       )}
-                      
                       <div className="absolute top-2 right-2 bg-white/90 backdrop-blur px-2 py-1 rounded-full flex items-center text-[10px] font-bold text-green-700 shadow-sm">
                         <ShieldCheck className="w-3 h-3 mr-1" /> Verified
                       </div>
@@ -141,5 +149,13 @@ export default function BrowsePage() {
         )}
       </main>
     </div>
+  );
+}
+
+export default function BrowsePage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center py-20"><Loader2 className="animate-spin text-green-600 w-8 h-8"/></div>}>
+      <BrowseContent />
+    </Suspense>
   );
 }
