@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { 
   Menu, 
   X, 
-  LayoutDashboard, 
+  Home, // <--- Imported Home Icon
   LogOut, 
   Settings, 
   Search, 
@@ -15,14 +15,13 @@ import {
 import { createClient } from '../utils/supabase/client';
 
 export default function Navbar() {
-  const [isOpen, setIsOpen] = useState(false); // Mobile Menu
-  const [isProfileOpen, setIsProfileOpen] = useState(false); // Profile Dropdown
+  const [isOpen, setIsOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [isScrolled, setIsScrolled] = useState(false); 
   const router = useRouter();
   const supabase = createClient();
 
-  // 1. CHECK LOGIN STATUS ON LOAD
   useEffect(() => {
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -31,7 +30,6 @@ export default function Navbar() {
     checkUser();
   }, []);
 
-  // 2. HANDLE SCROLL DETECTION
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 0);
@@ -40,15 +38,12 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // 3. HANDLE LOGOUT
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUser(null);
     router.push('/login');
     setIsProfileOpen(false);
   };
-
-  const dashboardLink = user?.user_metadata?.role === 'artisan' ? '/artisan-dashboard' : '/dashboard';
 
   return (
     <nav className={`sticky top-0 z-50 w-full border-b ${
@@ -69,7 +64,6 @@ export default function Navbar() {
           {/* --- SCENARIO A: USER IS NOT LOGGED IN --- */}
           {!user ? (
             <>
-              {/* Desktop Links */}
               <div className="hidden md:flex items-center space-x-8">
                 <Link href="/browse" className="text-gray-600 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 font-medium">
                   Browse Artisans
@@ -82,7 +76,6 @@ export default function Navbar() {
                 </Link>
               </div>
 
-              {/* Mobile Menu Button */}
               <div className="md:hidden flex items-center">
                 <button 
                   onClick={() => setIsOpen(!isOpen)} 
@@ -96,7 +89,9 @@ export default function Navbar() {
             /* --- SCENARIO B: USER IS LOGGED IN --- */
             <div className="flex items-center gap-4">
               
-              {/* Note: I removed the standalone "Browse Artisans" link here as requested. */}
+              <Link href="/browse" className="hidden md:block text-gray-600 dark:text-gray-300 hover:text-green-600 font-medium mr-2">
+                Browse Artisans
+              </Link>
 
               {/* PROFILE DROPDOWN */}
               <div className="relative">
@@ -125,10 +120,10 @@ export default function Navbar() {
                         </div>
                         
                         <div className="p-2 space-y-1">
-                          <Link href={dashboardLink} className="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg" onClick={() => setIsProfileOpen(false)}>
-                            <LayoutDashboard className="w-4 h-4 mr-2" /> Dashboard
+                          {/* CHANGED: Dashboard link replaced with Home link */}
+                          <Link href="/" className="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg" onClick={() => setIsProfileOpen(false)}>
+                            <Home className="w-4 h-4 mr-2" /> Home
                           </Link>
-                          {/* Browse is now ONLY here */}
                           <Link href="/browse" className="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg" onClick={() => setIsProfileOpen(false)}>
                             <Search className="w-4 h-4 mr-2" /> Browse Artisans
                           </Link>
@@ -155,25 +150,13 @@ export default function Navbar() {
       {isOpen && !user && (
         <div className="md:hidden bg-white dark:bg-slate-900 border-t border-gray-100 dark:border-gray-800 absolute w-full left-0 animate-in slide-in-from-top-5 duration-200 shadow-xl">
           <div className="px-4 pt-2 pb-6 space-y-2">
-            <Link 
-              href="/browse" 
-              className="block px-3 py-4 rounded-md text-base font-medium text-gray-700 dark:text-gray-200 hover:text-green-600 hover:bg-green-50 dark:hover:bg-slate-800"
-              onClick={() => setIsOpen(false)}
-            >
+            <Link href="/browse" className="block px-3 py-4 rounded-md text-base font-medium text-gray-700 dark:text-gray-200 hover:text-green-600 hover:bg-green-50 dark:hover:bg-slate-800" onClick={() => setIsOpen(false)}>
               Browse Artisans
             </Link>
-            <Link 
-              href="/login" 
-              className="block px-3 py-4 rounded-md text-base font-medium text-gray-700 dark:text-gray-200 hover:text-green-600 hover:bg-green-50 dark:hover:bg-slate-800"
-              onClick={() => setIsOpen(false)}
-            >
+            <Link href="/login" className="block px-3 py-4 rounded-md text-base font-medium text-gray-700 dark:text-gray-200 hover:text-green-600 hover:bg-green-50 dark:hover:bg-slate-800" onClick={() => setIsOpen(false)}>
               Log In
             </Link>
-            <Link 
-              href="/signup" 
-              className="block px-3 py-4 mt-4 text-center rounded-lg text-base font-bold text-white bg-green-600 hover:bg-green-700 shadow-md"
-              onClick={() => setIsOpen(false)}
-            >
+            <Link href="/signup" className="block px-3 py-4 mt-4 text-center rounded-lg text-base font-bold text-white bg-green-600 hover:bg-green-700 shadow-md" onClick={() => setIsOpen(false)}>
               Join Now
             </Link>
           </div>
