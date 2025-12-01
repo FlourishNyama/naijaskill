@@ -2,11 +2,12 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation'; // <--- Added usePathname
 import { 
   Menu, 
   X, 
-  Home, // <--- Imported Home Icon
+  LayoutDashboard, 
+  Home, 
   LogOut, 
   Settings, 
   Search, 
@@ -19,7 +20,9 @@ export default function Navbar() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [isScrolled, setIsScrolled] = useState(false); 
+  
   const router = useRouter();
+  const pathname = usePathname(); // <--- Get current location
   const supabase = createClient();
 
   useEffect(() => {
@@ -44,6 +47,18 @@ export default function Navbar() {
     router.push('/login');
     setIsProfileOpen(false);
   };
+
+  // --- SMART LINK LOGIC ---
+  // 1. Where does the user belong? (Client Dash vs Artisan Dash)
+  const userDashboard = user?.user_metadata?.role === 'artisan' ? '/artisan-dashboard' : '/dashboard';
+  
+  // 2. Are we currently inside a Dashboard?
+  const isOnDashboard = pathname?.includes('dashboard');
+
+  // 3. Decide what the button should be
+  const navTargetLink = isOnDashboard ? '/' : userDashboard;
+  const navTargetLabel = isOnDashboard ? 'Home' : 'Dashboard';
+  const NavTargetIcon = isOnDashboard ? Home : LayoutDashboard;
 
   return (
     <nav className={`sticky top-0 z-50 w-full border-b ${
@@ -89,6 +104,7 @@ export default function Navbar() {
             /* --- SCENARIO B: USER IS LOGGED IN --- */
             <div className="flex items-center gap-4">
               
+              {/* Desktop Only: Browse Link */}
               <Link href="/browse" className="hidden md:block text-gray-600 dark:text-gray-300 hover:text-green-600 font-medium mr-2">
                 Browse Artisans
               </Link>
@@ -120,10 +136,16 @@ export default function Navbar() {
                         </div>
                         
                         <div className="p-2 space-y-1">
-                          {/* CHANGED: Dashboard link replaced with Home link */}
-                          <Link href="/" className="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg" onClick={() => setIsProfileOpen(false)}>
-                            <Home className="w-4 h-4 mr-2" /> Home
+                          {/* --- THE SMART LINK --- */}
+                          <Link 
+                            href={navTargetLink} 
+                            className="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg" 
+                            onClick={() => setIsProfileOpen(false)}
+                          >
+                            <NavTargetIcon className="w-4 h-4 mr-2" /> {navTargetLabel}
                           </Link>
+                          {/* ------------------- */}
+
                           <Link href="/browse" className="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg" onClick={() => setIsProfileOpen(false)}>
                             <Search className="w-4 h-4 mr-2" /> Browse Artisans
                           </Link>
@@ -146,7 +168,7 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* MOBILE MENU (Only shown when NOT logged in) */}
+      {/* MOBILE MENU (Not logged in) */}
       {isOpen && !user && (
         <div className="md:hidden bg-white dark:bg-slate-900 border-t border-gray-100 dark:border-gray-800 absolute w-full left-0 animate-in slide-in-from-top-5 duration-200 shadow-xl">
           <div className="px-4 pt-2 pb-6 space-y-2">
