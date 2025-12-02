@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Clock, CheckCircle, MessageSquare, MapPin, Calendar, ShieldCheck, ArrowLeft, Loader2, User } from 'lucide-react';
+import { Clock, CheckCircle, MessageSquare, MapPin, Calendar, ShieldCheck, ArrowLeft, Loader2, User, AlertTriangle } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { createClient } from '../../utils/supabase/client';
 
@@ -10,38 +10,54 @@ export default function MyJobsPage() {
   const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active');
   const [jobs, setJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [processingId, setProcessingId] = useState<string | null>(null); // To show spinner on button
   const router = useRouter();
+  const supabase = createClient();
 
   useEffect(() => {
-    const fetchJobs = async () => {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        router.push('/login');
-        return;
-      }
-
-      // Fetch Bookings where I am the Client
-      const { data, error } = await supabase
-        .from('bookings')
-        .select('*')
-        .eq('client_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (data) {
-        setJobs(data);
-      }
-      setLoading(false);
-    };
-
     fetchJobs();
-  }, [router]);
+  }, []);
+
+  const fetchJobs = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+
+    const { data } = await supabase
+      .from('bookings')
+      .select('*')
+      .eq('client_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (data) setJobs(data);
+    setLoading(false);
+  };
+
+  // --- THE NEW RELEASE FUNDS FUNCTION ---
+  const handleReleaseFunds = async (jobId: string, budget: number) => {
+    const confirm = window.confirm(`Are you sure you want to release ₦${budget.toLocaleString()} to the artisan? This cannot be undone.`);
+    if (!confirm) return;
+
+    setProcessingId(jobId);
+
+    // Call the SQL Function we just created
+    const { error } = await supabase.rpc('release_funds', { job_id: jobId });
+
+    if (error) {
+      alert("Transaction Failed: " + error.message);
+    } else {
+      alert("Funds Released Successfully! Job marked as completed.");
+      fetchJobs(); // Refresh the list
+    }
+    setProcessingId(null);
+  };
 
   // Filter based on status
   const filteredJobs = jobs.filter(job => {
-    if (activeTab === 'active') return job.status === 'pending' || job.status === 'accepted' || job.status === 'in_progress';
-    return job.status === 'completed' || job.status === 'rejected';
+    if (activeTab === 'active') return ['pending', 'accepted', 'in_progress'].includes(job.status);
+    return ['completed', 'rejected'].includes(job.status);
   });
 
   if (loading) return <div className="min-h-screen flex items-center justify-center dark:bg-slate-950"><Loader2 className="w-10 h-10 animate-spin text-green-600" /></div>;
@@ -132,11 +148,23 @@ export default function MyJobsPage() {
                     <Link href={`/messages?returnTo=/jobs`} className="flex-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 py-2.5 rounded-lg text-sm font-bold flex items-center justify-center hover:bg-gray-50 dark:hover:bg-slate-700 transition">
                       <MessageSquare className="w-4 h-4 mr-2" /> Chat
                     </Link>
-                    {/* The Release Funds button would trigger a Paystack API in the real world */}
-                    <button className="flex-1 bg-green-600 text-white py-2.5 rounded-lg text-sm font-bold flex items-center justify-center hover:bg-green-700 transition shadow-lg shadow-green-500/20">
-                      <CheckCircle className="w-4 h-4 mr-2" /> Release Funds
+                    
+                    {/* RELEASE FUNDS BUTTON */}
+                    <button 
+                      onClick={() => handleReleaseFunds(job.id, job.budget)}
+                      disabled={processingId === job.id}
+                      className="flex-1 bg-green-600 text-white py-2.5 rounded-lg text-sm font-bold flex items-center justify-center hover:bg-green-700 transition shadow-lg shadow-green-500/20 disabled:opacity-70"
+                    >
+                      {processingId === job.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <><CheckCircle className="w-4 h-4 mr-2" /> Release Funds</>}
                     </button>
                   </div>
+                )}
+                
+                {/* Completed View */}
+                {activeTab === 'completed' && job.status === 'completed' && (
+                   <div className="p-3 bg-green-50 dark:bg-green-900/10 text-center text-green-700 dark:text-green-400 text-xs font-bold">
+                     Funds Released Successfully
+                   </div>
                 )}
               </div>
             ))
