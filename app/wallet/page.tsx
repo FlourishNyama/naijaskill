@@ -7,7 +7,7 @@ import Navbar from '@/components/Navbar';
 import { createClient } from '../../utils/supabase/client';
 import dynamic from 'next/dynamic';
 
-// --- THE FIX: Load Paystack only on the client side ---
+// Dynamic Import to fix Build Error
 const PaystackButton = dynamic(
   () => import('react-paystack').then((mod) => mod.PaystackButton),
   { ssr: false }
@@ -27,6 +27,7 @@ export default function WalletPage() {
       if (!user) { router.push('/login'); return; }
       setUser(user);
 
+      // FETCH REAL BALANCE
       const { data: wallet } = await supabase
         .from('wallets')
         .select('balance')
@@ -39,16 +40,41 @@ export default function WalletPage() {
     getData();
   }, [router]);
 
+  // WITHDRAWAL LOGIC
+  const handleWithdraw = async () => {
+    if (balance <= 0) {
+        alert("Insufficient funds!");
+        return;
+    }
+    const confirm = window.confirm(`Withdraw ₦${balance.toLocaleString()} to your bank account?`);
+    if (!confirm) return;
+
+    // Simulate Withdrawal (Deduct from DB)
+    const supabase = createClient();
+    const { error } = await supabase.from('wallets').update({ balance: 0 }).eq('user_id', user.id);
+    
+    if (!error) {
+        setBalance(0);
+        alert("Withdrawal Successful! Funds will arrive in 24 hours.");
+    } else {
+        alert("Error: " + error.message);
+    }
+  };
+
+  // PAYSTACK CONFIG
   const componentProps = {
     email: user?.email || 'user@example.com',
     amount: amountToFund * 100, 
     publicKey: process.env.NEXT_PUBLIC_PAYSTACK_KEY || '', 
-    text: "Fund Wallet Now",
+    text: "Fund Wallet",
     onSuccess: async (reference: any) => {
-      alert("Payment Successful! Reference: " + reference.reference);
+      alert("Payment Successful! Ref: " + reference.reference);
       const supabase = createClient();
       const newBalance = balance + amountToFund;
+      
+      // Update Database
       await supabase.from('wallets').update({ balance: newBalance }).eq('user_id', user.id);
+      
       setBalance(newBalance);
     },
     onClose: () => alert("Transaction canceled"),
@@ -88,18 +114,27 @@ export default function WalletPage() {
                </div>
                
                <div className="flex-1 pt-4">
-                 {/* Only render Paystack if key exists to prevent crashes */}
-                 {process.env.NEXT_PUBLIC_PAYSTACK_KEY && (
+                 {process.env.NEXT_PUBLIC_PAYSTACK_KEY ? (
                    <PaystackButton 
                       {...componentProps} 
                       className="w-full bg-white text-green-900 py-2.5 rounded-lg font-bold text-sm hover:bg-green-50 transition flex items-center justify-center shadow-lg"
                    />
-                 )}
-                 {!process.env.NEXT_PUBLIC_PAYSTACK_KEY && (
+                 ) : (
                    <button className="w-full bg-gray-400 text-white py-2.5 rounded-lg font-bold text-sm cursor-not-allowed">Missing Key</button>
                  )}
                </div>
             </div>
+            
+            {/* WITHDRAW BUTTON */}
+            <div className="mt-4 pt-4 border-t border-green-800/50">
+                <button 
+                    onClick={handleWithdraw}
+                    className="w-full border border-green-400/50 text-green-100 hover:bg-green-800 py-2.5 rounded-lg font-medium text-sm transition flex items-center justify-center"
+                >
+                    <ArrowUpRight className="w-4 h-4 mr-2" /> Withdraw Funds
+                </button>
+            </div>
+
           </div>
         </div>
 

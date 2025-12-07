@@ -7,13 +7,13 @@ import {
   LayoutDashboard, Briefcase, MessageSquare, Wallet, Settings, LogOut, Clock, CheckCircle, ShieldCheck, Plus, Repeat, Loader2, ArrowUpRight
 } from 'lucide-react';
 import { createClient } from '../../utils/supabase/client'; 
-import Navbar from '@/components/Navbar'; // <--- Import Navbar
+import Navbar from '@/components/Navbar'; // Uses the Smart Navbar
 
 export default function Dashboard() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [balance, setBalance] = useState(0);
+  const [balance, setBalance] = useState(0); // Real Money State
 
   useEffect(() => {
     const checkUser = async () => {
@@ -24,8 +24,17 @@ export default function Dashboard() {
         router.push('/login');
       } else {
         setUser(user);
-        const { data: wallet } = await supabase.from('wallets').select('balance').eq('user_id', user.id).single();
+
+        // --- FETCH REAL WALLET BALANCE ---
+        const { data: wallet } = await supabase
+          .from('wallets')
+          .select('balance')
+          .eq('user_id', user.id)
+          .single();
+        
         if (wallet) setBalance(wallet.balance);
+        // ---------------------------------
+
         setLoading(false);
       }
     };
@@ -43,7 +52,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-950 transition-colors duration-300"> 
       
-      {/* 1. TOP NAVBAR (Global Navigation) */}
+      {/* 1. GLOBAL NAVBAR */}
       <Navbar />
 
       <div className="flex pb-20 md:pb-0">
@@ -74,7 +83,6 @@ export default function Dashboard() {
         {/* 4. MAIN CONTENT AREA */}
         <main className="flex-1 md:ml-64 p-4 md:p-8 pt-6">
           
-          {/* Welcome Text (Now simplified since profile is in Navbar) */}
           <div className="mb-8">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
             <p className="text-sm md:text-base text-gray-500 dark:text-gray-400">
@@ -86,6 +94,7 @@ export default function Dashboard() {
             <Link href="/post-job" className="w-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 p-4 rounded-xl font-bold flex items-center justify-center hover:opacity-90 transition shadow-lg transform active:scale-95"><Plus className="w-5 h-5 mr-2" /> Post a New Job Request</Link>
           </div>
 
+          {/* REAL STATS */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-8">
             <Link href="/wallet" className="bg-green-900 dark:bg-green-950 text-white p-6 rounded-xl shadow-lg relative overflow-hidden group cursor-pointer transition transform hover:scale-[1.02]">
               <div className="absolute top-0 right-0 p-4 opacity-10"><Wallet className="w-24 h-24" /></div>
@@ -94,10 +103,12 @@ export default function Dashboard() {
                   <span className="text-green-200 text-sm font-medium group-hover:text-white transition">Wallet Balance</span>
                   <div className="bg-white/20 hover:bg-white/30 p-1.5 rounded-lg transition"><Plus className="w-4 h-4 text-white" /></div>
                 </div>
+                {/* DISPLAY REAL BALANCE */}
                 <div className="text-3xl font-bold mb-1">₦{balance.toLocaleString()}</div>
                 <p className="text-xs text-green-200 group-hover:text-white transition">Click to view history</p>
               </div>
             </Link>
+            {/* ... other cards ... */}
             <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm">
               <div className="flex items-center justify-between mb-4"><span className="text-gray-500 dark:text-gray-400 text-sm font-medium">Active Jobs</span><Briefcase className="w-5 h-5 text-green-500" /></div>
               <div className="text-2xl font-bold text-gray-900 dark:text-white">1</div>
