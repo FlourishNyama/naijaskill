@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Wallet, ArrowUpRight, Loader2 } from 'lucide-react';
+import { ArrowLeft, Wallet, ArrowUpRight, Loader2, ArrowDownLeft } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { createClient } from '../../utils/supabase/client';
 import dynamic from 'next/dynamic';
@@ -18,7 +18,10 @@ export default function WalletPage() {
   const [balance, setBalance] = useState(0);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+  
+  // Two inputs: One for adding money, one for taking money out
   const [amountToFund, setAmountToFund] = useState(5000); 
+  const [amountToWithdraw, setAmountToWithdraw] = useState(0); 
 
   useEffect(() => {
     const getData = async () => {
@@ -27,7 +30,6 @@ export default function WalletPage() {
       if (!user) { router.push('/login'); return; }
       setUser(user);
 
-      // FETCH REAL BALANCE
       const { data: wallet } = await supabase
         .from('wallets')
         .select('balance')
@@ -40,22 +42,32 @@ export default function WalletPage() {
     getData();
   }, [router]);
 
-  // WITHDRAWAL LOGIC
+  // --- SMART WITHDRAWAL LOGIC ---
   const handleWithdraw = async () => {
-    if (balance <= 0) {
-        alert("Insufficient funds!");
+    // 1. Validation Checks
+    if (amountToWithdraw <= 0) {
+        alert("Please enter a valid amount to withdraw.");
         return;
     }
-    const confirm = window.confirm(`Withdraw ₦${balance.toLocaleString()} to your bank account?`);
+    if (amountToWithdraw > balance) {
+        alert("Insufficient funds! You cannot withdraw more than your balance.");
+        return;
+    }
+
+    const confirm = window.confirm(`Withdraw ₦${amountToWithdraw.toLocaleString()} to your bank account?`);
     if (!confirm) return;
 
-    // Simulate Withdrawal (Deduct from DB)
+    // 2. Calculate Remainder
+    const newBalance = balance - amountToWithdraw;
+
+    // 3. Update Database (Simulated)
     const supabase = createClient();
-    const { error } = await supabase.from('wallets').update({ balance: 0 }).eq('user_id', user.id);
+    const { error } = await supabase.from('wallets').update({ balance: newBalance }).eq('user_id', user.id);
     
     if (!error) {
-        setBalance(0);
-        alert("Withdrawal Successful! Funds will arrive in 24 hours.");
+        setBalance(newBalance); // Update UI
+        setAmountToWithdraw(0); // Reset Input
+        alert(`Withdrawal Successful! ₦${amountToWithdraw.toLocaleString()} has been sent to your bank.`);
     } else {
         alert("Error: " + error.message);
     }
@@ -72,7 +84,6 @@ export default function WalletPage() {
       const supabase = createClient();
       const newBalance = balance + amountToFund;
       
-      // Update Database
       await supabase.from('wallets').update({ balance: newBalance }).eq('user_id', user.id);
       
       setBalance(newBalance);
@@ -100,42 +111,60 @@ export default function WalletPage() {
           </div>
           <div className="relative z-10">
             <p className="text-green-200 text-sm font-medium mb-1">Available Balance</p>
-            <h2 className="text-4xl font-bold mb-6">₦{balance.toLocaleString()}</h2>
+            <h2 className="text-4xl font-bold mb-8">₦{balance.toLocaleString()}</h2>
             
-            {/* FUNDING SECTION */}
-            <div className="flex gap-3 items-center mb-6">
+            {/* --- SECTION 1: FUND WALLET --- */}
+            <div className="flex gap-3 items-end mb-6">
                <div className="flex-1">
-                 <label className="text-[10px] text-green-200 uppercase font-bold">Amount to Add</label>
-                 <input 
-                   type="number" 
-                   value={amountToFund}
-                   onChange={(e) => setAmountToFund(Number(e.target.value))}
-                   className="w-full p-2 rounded text-green-900 font-bold text-sm outline-none"
-                 />
+                 <label className="block text-[10px] text-green-200 uppercase font-bold mb-1">Fund Wallet</label>
+                 <div className="relative">
+                    <ArrowDownLeft className="absolute left-2 top-2.5 w-4 h-4 text-green-700" />
+                    <input 
+                      type="number" 
+                      placeholder="Amount"
+                      value={amountToFund}
+                      onChange={(e) => setAmountToFund(Number(e.target.value))}
+                      className="w-full pl-8 pr-2 py-2 rounded text-green-900 font-bold text-sm outline-none"
+                    />
+                 </div>
                </div>
                
-               <div className="flex-1 pt-4">
+               <div className="flex-1">
                  {process.env.NEXT_PUBLIC_PAYSTACK_KEY ? (
                    <PaystackButton 
                       {...componentProps} 
-                      className="w-full bg-white text-green-900 py-2.5 rounded-lg font-bold text-sm hover:bg-green-50 transition flex items-center justify-center shadow-lg"
+                      className="w-full bg-white text-green-900 py-2 rounded font-bold text-sm hover:bg-green-50 transition shadow-lg h-[36px]"
                    />
                  ) : (
-                   <button className="w-full bg-gray-400 text-white py-2.5 rounded-lg font-bold text-sm cursor-not-allowed">Missing Key</button>
+                   <button className="w-full bg-gray-400 text-white py-2 rounded font-bold text-sm cursor-not-allowed h-[36px]">Missing Key</button>
                  )}
                </div>
             </div>
             
-            {/* --- WITHDRAW BUTTON (HERE IS THE MISSING PART) --- */}
-            <div className="pt-4 border-t border-green-800/50">
-                <button 
-                    onClick={handleWithdraw}
-                    className="w-full bg-green-800/50 hover:bg-green-800 border border-green-700 text-green-100 py-3 rounded-lg font-bold text-sm transition flex items-center justify-center"
-                >
-                    <ArrowUpRight className="w-4 h-4 mr-2" /> Withdraw Funds
-                </button>
+            {/* --- SECTION 2: WITHDRAW FUNDS --- */}
+            <div className="pt-4 border-t border-green-800/50 flex gap-3 items-end">
+                <div className="flex-1">
+                    <label className="block text-[10px] text-green-200 uppercase font-bold mb-1">Withdraw Funds</label>
+                    <div className="relative">
+                        <ArrowUpRight className="absolute left-2 top-2.5 w-4 h-4 text-green-700" />
+                        <input 
+                          type="number" 
+                          placeholder="Amount"
+                          value={amountToWithdraw === 0 ? '' : amountToWithdraw}
+                          onChange={(e) => setAmountToWithdraw(Number(e.target.value))}
+                          className="w-full pl-8 pr-2 py-2 rounded text-green-900 font-bold text-sm outline-none"
+                        />
+                    </div>
+                </div>
+                <div className="flex-1">
+                    <button 
+                        onClick={handleWithdraw}
+                        className="w-full bg-green-800 hover:bg-green-700 border border-green-700 text-white py-2 rounded font-bold text-sm transition h-[36px]"
+                    >
+                        Withdraw
+                    </button>
+                </div>
             </div>
-            {/* ------------------------------------------------ */}
 
           </div>
         </div>
