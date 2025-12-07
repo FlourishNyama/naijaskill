@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Wallet, Plus, ArrowUpRight, ArrowDownLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Wallet, ArrowUpRight, Loader2 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { createClient } from '../../utils/supabase/client';
 import dynamic from 'next/dynamic';
@@ -102,7 +102,8 @@ export default function WalletPage() {
             <p className="text-green-200 text-sm font-medium mb-1">Available Balance</p>
             <h2 className="text-4xl font-bold mb-6">₦{balance.toLocaleString()}</h2>
             
-            <div className="flex gap-3 items-center">
+            {/* FUNDING SECTION */}
+            <div className="flex gap-3 items-center mb-6">
                <div className="flex-1">
                  <label className="text-[10px] text-green-200 uppercase font-bold">Amount to Add</label>
                  <input 
@@ -125,15 +126,16 @@ export default function WalletPage() {
                </div>
             </div>
             
-            {/* WITHDRAW BUTTON */}
-            <div className="mt-4 pt-4 border-t border-green-800/50">
+            {/* --- WITHDRAW BUTTON (HERE IS THE MISSING PART) --- */}
+            <div className="pt-4 border-t border-green-800/50">
                 <button 
                     onClick={handleWithdraw}
-                    className="w-full border border-green-400/50 text-green-100 hover:bg-green-800 py-2.5 rounded-lg font-medium text-sm transition flex items-center justify-center"
+                    className="w-full bg-green-800/50 hover:bg-green-800 border border-green-700 text-green-100 py-3 rounded-lg font-bold text-sm transition flex items-center justify-center"
                 >
                     <ArrowUpRight className="w-4 h-4 mr-2" /> Withdraw Funds
                 </button>
             </div>
+            {/* ------------------------------------------------ */}
 
           </div>
         </div>
