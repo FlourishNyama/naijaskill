@@ -1,139 +1,184 @@
 "use client";
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, User, Mail, Phone, Loader2, Save } from 'lucide-react';
+import { Loader2, User, MapPin, Briefcase, DollarSign, Save } from 'lucide-react';
 import Navbar from '@/components/Navbar';
-import AvatarUpload from '@/components/AvatarUpload'; // <--- Import the component
 import { createClient } from '../../utils/supabase/client';
 
 export default function SettingsPage() {
-  const supabase = createClient();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [user, setUser] = useState<any>(null);
   
   // Form State
-  const [fullName, setFullName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [formData, setFormData] = useState({
+    full_name: '',
+    location: '',
+    bio: '',
+    job_title: '',
+    hourly_rate: 0,
+    avatar_url: '' // We will add image upload later
+  });
 
-  // Load Data
   useEffect(() => {
-    const getUser = async () => {
+    const getData = async () => {
+      const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { router.push('/login'); return; }
       
+      if (!user) {
+        router.push('/login');
+        return;
+      }
       setUser(user);
-      setFullName(user.user_metadata.full_name || "");
-      setPhone(user.user_metadata.phone || "");
+
+      // Fetch existing profile data
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (profile) {
+        setFormData({
+          full_name: profile.full_name || '',
+          location: profile.location || '',
+          bio: profile.bio || '',
+          job_title: profile.job_title || '',
+          hourly_rate: profile.hourly_rate || 0,
+          avatar_url: profile.avatar_url || ''
+        });
+      }
       setLoading(false);
     };
-    getUser();
+    getData();
   }, [router]);
 
-  // Update Data
-  const handleSave = async () => {
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
     setSaving(true);
-    const { error } = await supabase.auth.updateUser({
-      data: { full_name: fullName, phone: phone }
-    });
-    
-    // Also update the public 'profiles' table
-    await supabase.from('profiles').update({ full_name: fullName }).eq('id', user.id);
+    const supabase = createClient();
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        full_name: formData.full_name,
+        location: formData.location,
+        bio: formData.bio,
+        job_title: formData.job_title,
+        hourly_rate: formData.hourly_rate,
+      })
+      .eq('id', user.id);
+
+    setSaving(false);
 
     if (error) {
-        alert("Error: " + error.message);
+      alert("Error updating profile: " + error.message);
     } else {
-        // alert("Profile Updated!"); 
-        router.push('/dashboard'); // <--- THE FIX: Go back to Dashboard
+      alert("Profile updated successfully!");
+      // Determine dashboard link properly
+      const dashboard = user?.user_metadata?.role === 'artisan' ? '/artisan-dashboard' : '/dashboard';
+      router.push(dashboard);
     }
-    
-    setSaving(false);
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center dark:bg-slate-950"><Loader2 className="animate-spin text-green-600" /></div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center dark:bg-slate-950"><Loader2 className="w-10 h-10 animate-spin text-green-600" /></div>;
+
+  const isArtisan = user?.user_metadata?.role === 'artisan';
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-950 pb-20 transition-colors duration-300">
       <Navbar />
 
       <main className="max-w-2xl mx-auto px-4 py-8">
-        <div className="flex items-center mb-8">
-          <Link href="/dashboard" className="mr-4 text-gray-500 hover:text-green-600 transition p-1 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800">
-            <ArrowLeft className="w-6 h-6" />
-          </Link>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Settings</h1>
-        </div>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Profile Settings</h1>
 
-        {/* 1. PROFILE PHOTO SECTION (Now Working!) */}
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm mb-6 flex flex-col items-center">
-          <AvatarUpload 
-            uid={user.id} 
-            url={user.user_metadata.avatar_url} 
-            onUpload={(url) => console.log("New URL:", url)} 
-          />
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white">{fullName || "User"}</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 capitalize">{user.user_metadata.role} Account</p>
-        </div>
-
-        {/* 2. PERSONAL DETAILS FORM */}
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm mb-6">
-          <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider mb-4 border-b border-gray-50 dark:border-gray-800 pb-2">
-            Personal Information
-          </h3>
-          
-          <div className="space-y-4">
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800">
+          <form onSubmit={handleSave} className="space-y-6">
+            
+            {/* Full Name */}
             <div>
-              <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">Full Name</label>
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Full Name</label>
               <div className="relative">
-                <User className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                <User className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
                 <input 
                   type="text" 
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-green-500 outline-none transition text-sm font-medium dark:text-white" 
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent outline-none focus:border-green-500 transition"
+                  value={formData.full_name}
+                  onChange={(e) => setFormData({...formData, full_name: e.target.value})}
                 />
               </div>
             </div>
 
+            {/* Location */}
             <div>
-              <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">Email (Cannot Change)</label>
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Location (City, State)</label>
               <div className="relative">
-                <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                <MapPin className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
                 <input 
-                  type="email" 
-                  value={user.email} 
-                  disabled
-                  className="w-full pl-10 pr-4 py-2.5 bg-gray-100 dark:bg-slate-800/50 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-500 dark:text-gray-500 cursor-not-allowed text-sm font-medium" 
+                  type="text" 
+                  placeholder="e.g. Lagos, Nigeria"
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent outline-none focus:border-green-500 transition"
+                  value={formData.location}
+                  onChange={(e) => setFormData({...formData, location: e.target.value})}
                 />
               </div>
             </div>
 
+            {/* ARTISAN ONLY FIELDS */}
+            {isArtisan && (
+              <>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Job Title / Profession</label>
+                  <div className="relative">
+                    <Briefcase className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                    <input 
+                      type="text" 
+                      placeholder="e.g. Professional Plumber"
+                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent outline-none focus:border-green-500 transition"
+                      value={formData.job_title}
+                      onChange={(e) => setFormData({...formData, job_title: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Hourly Rate (₦)</label>
+                  <div className="relative">
+                    <DollarSign className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                    <input 
+                      type="number" 
+                      placeholder="2000"
+                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent outline-none focus:border-green-500 transition"
+                      value={formData.hourly_rate}
+                      onChange={(e) => setFormData({...formData, hourly_rate: Number(e.target.value)})}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Bio */}
             <div>
-              <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">Phone Number</label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                <input 
-                  type="tel" 
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-green-500 outline-none transition text-sm font-medium dark:text-white" 
-                />
-              </div>
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Bio / About Me</label>
+              <textarea 
+                className="w-full p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent outline-none focus:border-green-500 transition h-32 text-sm"
+                placeholder="Tell clients about your experience..."
+                value={formData.bio}
+                onChange={(e) => setFormData({...formData, bio: e.target.value})}
+              />
             </div>
-          </div>
+
+            <button 
+              type="submit" 
+              disabled={saving}
+              className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-bold shadow-lg shadow-green-500/30 transition disabled:opacity-70 flex justify-center items-center"
+            >
+              {saving ? <Loader2 className="animate-spin w-5 h-5" /> : <><Save className="w-5 h-5 mr-2" /> Save Changes</>}
+            </button>
+
+          </form>
         </div>
-
-        {/* SAVE BUTTON */}
-        <button 
-          onClick={handleSave}
-          disabled={saving}
-          className="w-full bg-green-600 text-white py-4 rounded-xl font-bold shadow-lg shadow-green-500/30 hover:bg-green-700 transition transform active:scale-95 flex items-center justify-center disabled:opacity-70"
-        >
-          {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Save className="w-5 h-5 mr-2" /> Save Changes</>}
-        </button>
-
       </main>
     </div>
   );
