@@ -3,7 +3,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Search, MapPin, Star, ShieldCheck, Loader2 } from 'lucide-react';
+import { Search, MapPin, ShieldCheck, Loader2 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { createClient } from '../../utils/supabase/client';
 
@@ -20,11 +20,12 @@ function BrowseContent() {
     const fetchArtisans = async () => {
       const supabase = createClient();
       
-      // 1. Fetch profiles that are marked as artisans OR have a job title
+      // FETCH LOGIC: Get everyone with a Job Title (Simpler = Better)
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .or('role.eq.artisan,job_title.neq.""'); // "Role is artisan OR Job Title is not empty"
+        .neq('job_title', null) // Must have a job title
+        .neq('job_title', '');  // Must not be empty string
 
       if (error) {
         console.error("Error fetching artisans:", error);
@@ -52,13 +53,13 @@ function BrowseContent() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         
-        {/* SEARCH & FILTER */}
+        {/* SEARCH */}
         <div className="mb-6 space-y-4">
           <div className="relative">
             <Search className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
             <input 
               type="text" 
-              placeholder="Search artisans (e.g. Plumber)..." 
+              placeholder="Search artisans..." 
               value={searchTerm}
               className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-slate-900 text-gray-900 dark:text-white shadow-sm outline-none focus:border-green-500"
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -115,7 +116,10 @@ function BrowseContent() {
         )}
         
         {filteredArtisans.length === 0 && !loading && (
-            <div className="text-center py-20 text-gray-400">No artisans found matching your criteria.</div>
+            <div className="text-center py-20 text-gray-400">
+              <p>No artisans found.</p>
+              <p className="text-xs mt-2 text-gray-500">Ensure you have created a user and added a "Job Title" in Artisan Settings.</p>
+            </div>
         )}
 
       </main>
