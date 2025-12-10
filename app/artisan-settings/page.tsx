@@ -58,15 +58,18 @@ export default function ArtisanSettingsPage() {
 
       const file = e.target.files[0];
       const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}-${Math.random()}.${fileExt}`;
+      // FIX 1: Unique filename to bypass cache
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
       const filePath = `${fileName}`;
 
       const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, file);
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
-      setFormData({ ...formData, avatar_url: publicUrl });
-      alert("Image uploaded!");
+      
+      // Update State Immediately
+      setFormData(prev => ({ ...prev, avatar_url: publicUrl }));
+      alert("Image uploaded! Don't forget to click Save.");
 
     } catch (error: any) {
       alert("Error uploading image: " + error.message);
@@ -83,7 +86,6 @@ export default function ArtisanSettingsPage() {
     }
     setSaving(true);
 
-    // 1. Update Profile (And enforce 'artisan' role)
     const { error } = await supabase
       .from('profiles')
       .update({
@@ -93,11 +95,10 @@ export default function ArtisanSettingsPage() {
         job_title: formData.job_title,
         hourly_rate: formData.hourly_rate,
         avatar_url: formData.avatar_url,
-        role: 'artisan' // <--- Force upgrade to Artisan
+        role: 'artisan' 
       })
       .eq('id', user.id);
 
-    // 2. Update Auth Metadata
     await supabase.auth.updateUser({
       data: { role: 'artisan' }
     });
@@ -108,7 +109,7 @@ export default function ArtisanSettingsPage() {
       alert("Error updating profile: " + error.message);
     } else {
       alert("Artisan Profile updated successfully!");
-      router.push('/artisan-dashboard'); // Send them to their new dashboard
+      router.push('/artisan-dashboard');
       router.refresh();
     }
   };
@@ -130,7 +131,15 @@ export default function ArtisanSettingsPage() {
               <div className="relative w-24 h-24 mb-3">
                 <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-green-50 dark:border-slate-800 shadow-sm relative bg-gray-100">
                   {formData.avatar_url ? (
-                    <Image src={formData.avatar_url} alt="Profile" fill className="object-cover" />
+                    // FIX 2: Key prop and unoptimized to force refresh
+                    <Image 
+                        key={formData.avatar_url}
+                        src={formData.avatar_url} 
+                        alt="Profile" 
+                        fill 
+                        className="object-cover"
+                        unoptimized
+                    />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-gray-400"><User className="w-10 h-10" /></div>
                   )}
@@ -158,7 +167,7 @@ export default function ArtisanSettingsPage() {
                 </div>
             </div>
 
-            {/* PROFESSIONAL INFO (The Key Part) */}
+            {/* PROFESSIONAL INFO */}
             <div className="pt-4 border-t border-gray-100 dark:border-gray-800">
                 <h3 className="text-sm font-bold text-green-600 mb-4 uppercase tracking-wide">Professional Details</h3>
                 
