@@ -3,16 +3,15 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
-import { Menu, X, LayoutDashboard, Home, LogOut, Settings, Search, ChevronDown, Briefcase, Repeat, Loader2 } from 'lucide-react';
+import { Menu, X, LayoutDashboard, Home, LogOut, Settings, Search, ChevronDown, Briefcase, Repeat } from 'lucide-react';
 import { createClient } from '../utils/supabase/client';
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
-  const [userProfile, setUserProfile] = useState<any>(null); // Store full profile data
+  const [userProfile, setUserProfile] = useState<any>(null);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [switching, setSwitching] = useState(false); // Loading state for switch
   
   const router = useRouter();
   const pathname = usePathname(); 
@@ -24,7 +23,7 @@ export default function Navbar() {
       setUser(user);
 
       if (user) {
-        // Fetch Live Profile Data (Name, Avatar, Job Title)
+        // Fetch fresh profile data to ensure role and avatar are up to date
         const { data: profile } = await supabase
           .from('profiles')
           .select('*')
@@ -50,27 +49,38 @@ export default function Navbar() {
     setIsProfileOpen(false);
   };
 
-  // --- SMART SWITCH LOGIC ---
-  const handleSwitchToArtisan = async () => {
-    setSwitching(true);
-    // Check if they have a "Job Title" (The mark of an Artisan)
-    if (!userProfile?.job_title) {
-        // No Job Title? Send to Settings to build profile
-        alert("To become an Artisan, please complete your professional profile first.");
-        router.push('/artisan-settings');
+  // Determine Mode based on Database Role first, then URL fallback
+  // This keeps the menu stable even if you are on the Home page.
+  const dbRole = userProfile?.role || 'client';
+  const isArtisan = dbRole === 'artisan';
+
+  // Define Links
+  const dashboardLink = isArtisan ? '/artisan-dashboard' : '/dashboard';
+  const settingsLink = isArtisan ? '/artisan-settings' : '/settings';
+  const browseLink = isArtisan ? '/find-work' : '/browse';
+  const browseLabel = isArtisan ? 'Find Work (Jobs)' : 'Browse Artisans';
+  const BrowseIcon = isArtisan ? Briefcase : Search;
+
+  // Switch Logic
+  const handleSwitch = async () => {
+    if (isArtisan) {
+        // Switch to Client (Easy)
+        await supabase.from('profiles').update({ role: 'client' }).eq('id', user.id);
+        router.push('/dashboard');
     } else {
-        // Has Job Title? They are ready. Go to Dashboard.
-        router.push('/artisan-dashboard');
+        // Switch to Artisan (Check if profile exists)
+        if (!userProfile?.job_title) {
+            alert("Please complete your Artisan Profile first.");
+            router.push('/artisan-settings');
+        } else {
+            await supabase.from('profiles').update({ role: 'artisan' }).eq('id', user.id);
+            router.push('/artisan-dashboard');
+        }
     }
-    setSwitching(false);
+    router.refresh();
     setIsProfileOpen(false);
   };
 
-  const isArtisanMode = pathname?.includes('artisan');
-  const dashboardLink = isArtisanMode ? '/artisan-dashboard' : '/dashboard';
-  const browseLink = isArtisanMode ? '/find-work' : '/browse';
-  const browseLabel = isArtisanMode ? 'Find Work' : 'Browse Artisans';
-  
   const navbarClasses = `sticky top-0 z-50 w-full border-b transition-colors duration-200 ${
     isScrolled ? 'bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-gray-200 dark:border-gray-800' : 'bg-white dark:bg-slate-950 border-gray-100 dark:border-gray-800'
   }`;
@@ -87,6 +97,7 @@ export default function Navbar() {
           </Link>
 
           {!user ? (
+            /* LOGGED OUT VIEW */
             <>
               <div className="hidden md:flex items-center space-x-8">
                 <Link href="/browse" className="text-gray-600 dark:text-gray-300 hover:text-green-600 font-medium">Browse Artisans</Link>
@@ -100,11 +111,10 @@ export default function Navbar() {
               </div>
             </>
           ) : (
+            /* LOGGED IN VIEW */
             <div className="flex items-center gap-4">
-              {pathname !== browseLink && (
-                <Link href={browseLink} className="hidden md:block text-gray-600 dark:text-gray-300 hover:text-green-600 font-medium mr-2">{browseLabel}</Link>
-              )}
-
+              
+              {/* PROFILE DROPDOWN */}
               <div className="relative">
                 <button onClick={() => setIsProfileOpen(!isProfileOpen)} className="flex items-center gap-2 focus:outline-none group">
                   <div className="relative h-10 w-10 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center text-green-700 dark:text-green-400 font-bold border-2 border-white dark:border-slate-800 shadow-sm overflow-hidden transition-transform group-hover:scale-105">
@@ -123,27 +133,35 @@ export default function Navbar() {
                     <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-gray-100 dark:border-gray-800 z-20 overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top-right">
                         <div className="p-4 border-b border-gray-100 dark:border-gray-800">
                           <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{userProfile?.full_name || "User"}</p>
-                          <p className="text-[10px] text-green-600 font-bold uppercase mt-1 tracking-wide">{isArtisanMode ? 'Artisan Mode' : 'Client Mode'}</p>
+                          <p className="text-[10px] text-green-600 font-bold uppercase mt-1 tracking-wide">{isArtisan ? 'Artisan Mode' : 'Client Mode'}</p>
                         </div>
+                        
                         <div className="p-2 space-y-1">
-                          {pathname !== '/' && <Link href="/" className="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg" onClick={() => setIsProfileOpen(false)}><Home className="w-4 h-4 mr-2" /> Home</Link>}
+                          <Link href="/" className="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg" onClick={() => setIsProfileOpen(false)}>
+                            <Home className="w-4 h-4 mr-2" /> Home
+                          </Link>
                           
-                          {/* Conditional Dashboard Link */}
-                          {pathname !== dashboardLink && <Link href={dashboardLink} className="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg" onClick={() => setIsProfileOpen(false)}><LayoutDashboard className="w-4 h-4 mr-2" /> Dashboard</Link>}
+                          <Link href={dashboardLink} className="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg" onClick={() => setIsProfileOpen(false)}>
+                            <LayoutDashboard className="w-4 h-4 mr-2" /> Dashboard
+                          </Link>
                           
-                          {/* Smart Switch Button */}
-                          {isArtisanMode ? (
-                             <Link href="/dashboard" className="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg" onClick={() => setIsProfileOpen(false)}><Repeat className="w-4 h-4 mr-2" /> Switch to Client</Link>
-                          ) : (
-                             <button onClick={handleSwitchToArtisan} className="flex w-full items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg text-left">
-                                {switching ? <Loader2 className="w-4 h-4 mr-2 animate-spin"/> : <Repeat className="w-4 h-4 mr-2" />} Switch to Artisan
-                             </button>
-                          )}
+                          <Link href={browseLink} className="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg" onClick={() => setIsProfileOpen(false)}>
+                            <BrowseIcon className="w-4 h-4 mr-2" /> {browseLabel}
+                          </Link>
 
-                          {pathname !== '/settings' && pathname !== '/artisan-settings' && <Link href={isArtisanMode ? "/artisan-settings" : "/settings"} className="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg" onClick={() => setIsProfileOpen(false)}><Settings className="w-4 h-4 mr-2" /> Settings</Link>}
+                          <button onClick={handleSwitch} className="flex w-full items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg text-left">
+                            <Repeat className="w-4 h-4 mr-2" /> {isArtisan ? 'Switch to Client' : 'Switch to Artisan'}
+                          </button>
+
+                          <Link href={settingsLink} className="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg" onClick={() => setIsProfileOpen(false)}>
+                            <Settings className="w-4 h-4 mr-2" /> Settings
+                          </Link>
                         </div>
+
                         <div className="p-2 border-t border-gray-100 dark:border-gray-800">
-                          <button onClick={handleLogout} className="flex w-full items-center px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg font-medium"><LogOut className="w-4 h-4 mr-2" /> Log Out</button>
+                          <button onClick={handleLogout} className="flex w-full items-center px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg font-medium">
+                            <LogOut className="w-4 h-4 mr-2" /> Log Out
+                          </button>
                         </div>
                     </div>
                   </>
@@ -154,6 +172,7 @@ export default function Navbar() {
         </div>
       </div>
       
+      {/* MOBILE MENU (Logged Out) */}
       {isOpen && !user && (
         <div className="md:hidden bg-white dark:bg-slate-900 border-t border-gray-100 dark:border-gray-800 absolute w-full left-0 animate-in slide-in-from-top-5 duration-200 shadow-xl">
           <div className="px-4 pt-2 pb-6 space-y-2">
