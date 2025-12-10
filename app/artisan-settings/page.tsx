@@ -1,26 +1,29 @@
 "use client";
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Save, DollarSign, MapPin, Briefcase, FileText, Loader2 } from 'lucide-react';
+import Image from 'next/image';
+import { Loader2, User, MapPin, Briefcase, DollarSign, Save, Camera } from 'lucide-react';
 import Navbar from '@/components/Navbar';
-import AvatarUpload from '@/components/AvatarUpload';
 import { createClient } from '../../utils/supabase/client';
 
 export default function ArtisanSettingsPage() {
-  const supabase = createClient();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [user, setUser] = useState<any>(null);
   
-  // Form Data
-  const [jobTitle, setJobTitle] = useState("");
-  const [rate, setRate] = useState("");
-  const [location, setLocation] = useState("");
-  const [bio, setBio] = useState("");
+  const [formData, setFormData] = useState({
+    full_name: '',
+    location: '',
+    bio: '',
+    job_title: '',
+    hourly_rate: 0,
+    avatar_url: '' 
+  });
 
-  // 1. Load Data on Start
+  const supabase = createClient();
+
   useEffect(() => {
     const getData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -34,141 +37,180 @@ export default function ArtisanSettingsPage() {
         .single();
 
       if (profile) {
-        setJobTitle(profile.job_title || "");
-        setRate(profile.hourly_rate || "");
-        setLocation(profile.location || "");
-        setBio(profile.bio || "");
+        setFormData({
+          full_name: profile.full_name || '',
+          location: profile.location || '',
+          bio: profile.bio || '',
+          job_title: profile.job_title || '',
+          hourly_rate: profile.hourly_rate || 0,
+          avatar_url: profile.avatar_url || ''
+        });
       }
       setLoading(false);
     };
     getData();
   }, [router]);
 
-  // 2. Save Data & UPGRADE ROLE
-  const handleSave = async () => {
-    setSaving(true);
-    
-    // Check required fields
-    if (!jobTitle || !rate) {
-        alert("Please enter your Job Title and Hourly Rate.");
-        setSaving(false);
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      setUploading(true);
+      if (!e.target.files || e.target.files.length === 0) return;
+
+      const file = e.target.files[0];
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}-${Math.random()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, file);
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
+      setFormData({ ...formData, avatar_url: publicUrl });
+      alert("Image uploaded!");
+
+    } catch (error: any) {
+      alert("Error uploading image: " + error.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.job_title) {
+        alert("As an Artisan, you must have a Job Title.");
         return;
     }
+    setSaving(true);
 
+    // 1. Update Profile (And enforce 'artisan' role)
     const { error } = await supabase
       .from('profiles')
       .update({
-        job_title: jobTitle,
-        hourly_rate: parseFloat(rate),
-        location: location,
-        bio: bio,
-        role: 'artisan' // <--- THIS IS THE FIX! It makes them visible in Browse.
+        full_name: formData.full_name,
+        location: formData.location,
+        bio: formData.bio,
+        job_title: formData.job_title,
+        hourly_rate: formData.hourly_rate,
+        avatar_url: formData.avatar_url,
+        role: 'artisan' // <--- Force upgrade to Artisan
       })
       .eq('id', user.id);
 
-    if (error) {
-      alert("Error: " + error.message);
-    } else {
-      router.push('/artisan-dashboard');
-    }
+    // 2. Update Auth Metadata
+    await supabase.auth.updateUser({
+      data: { role: 'artisan' }
+    });
+
     setSaving(false);
+
+    if (error) {
+      alert("Error updating profile: " + error.message);
+    } else {
+      alert("Artisan Profile updated successfully!");
+      router.push('/artisan-dashboard'); // Send them to their new dashboard
+      router.refresh();
+    }
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center dark:bg-slate-950"><Loader2 className="animate-spin text-green-600" /></div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center dark:bg-slate-950"><Loader2 className="w-10 h-10 animate-spin text-green-600" /></div>;
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-950 pb-20 transition-colors duration-300">
-      
-      <main className="max-w-3xl mx-auto px-4 py-8">
-        
-        <div className="flex items-center mb-6">
-          <Link href="/artisan-dashboard" className="mr-4 text-gray-500 dark:text-gray-400 hover:text-green-600 transition p-1 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800">
-            <ArrowLeft className="w-6 h-6" />
-          </Link>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Edit Profile</h1>
-        </div>
+      <Navbar />
 
-        {/* PROFILE PIC */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 mb-6 flex flex-col items-center">
-           <AvatarUpload 
-             uid={user.id} 
-             url={user.user_metadata.avatar_url} 
-             onUpload={(url) => console.log("Uploaded", url)} 
-           />
-           <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Tap camera to update</p>
-        </div>
+      <main className="max-w-2xl mx-auto px-4 py-8">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Artisan Profile Settings</h1>
 
-        {/* DETAILS FORM */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm p-6 mb-8 space-y-6">
-          
-          <div>
-            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">Professional Title <span className="text-red-500">*</span></label>
-            <div className="relative">
-              <Briefcase className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-              <input 
-                required
-                type="text" 
-                value={jobTitle}
-                onChange={(e) => setJobTitle(e.target.value)}
-                placeholder="e.g. Master Plumber"
-                className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-green-500 outline-none transition dark:text-white" 
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">Hourly Rate (₦) <span className="text-red-500">*</span></label>
-              <div className="relative">
-                <DollarSign className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                <input 
-                  required
-                  type="number" 
-                  value={rate}
-                  onChange={(e) => setRate(e.target.value)}
-                  placeholder="5000"
-                  className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-green-500 outline-none transition dark:text-white" 
-                />
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800">
+          <form onSubmit={handleSave} className="space-y-6">
+            
+            {/* AVATAR */}
+            <div className="flex flex-col items-center mb-6">
+              <div className="relative w-24 h-24 mb-3">
+                <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-green-50 dark:border-slate-800 shadow-sm relative bg-gray-100">
+                  {formData.avatar_url ? (
+                    <Image src={formData.avatar_url} alt="Profile" fill className="object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-400"><User className="w-10 h-10" /></div>
+                  )}
+                </div>
+                <label className="absolute bottom-0 right-0 bg-green-600 text-white p-2 rounded-full cursor-pointer hover:bg-green-700 transition shadow-md">
+                  {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
+                  <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" disabled={uploading} />
+                </label>
               </div>
+              <p className="text-xs text-gray-500">Professional Photo Required</p>
             </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">Base Location</label>
-              <div className="relative">
-                <MapPin className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                <input 
-                  type="text" 
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  placeholder="e.g. Lagos"
-                  className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-green-500 outline-none transition dark:text-white" 
-                />
-              </div>
-            </div>
-          </div>
 
-          <div>
-            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">Bio / About Me</label>
-            <div className="relative">
-              <FileText className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+            {/* IDENTITY */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Full Name</label>
+                <input type="text" className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent outline-none focus:border-green-500" value={formData.full_name} onChange={(e) => setFormData({...formData, full_name: e.target.value})} />
+                </div>
+                <div>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Location</label>
+                <div className="relative">
+                    <MapPin className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                    <input type="text" placeholder="e.g. Lagos" className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent outline-none focus:border-green-500" value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} />
+                </div>
+                </div>
+            </div>
+
+            {/* PROFESSIONAL INFO (The Key Part) */}
+            <div className="pt-4 border-t border-gray-100 dark:border-gray-800">
+                <h3 className="text-sm font-bold text-green-600 mb-4 uppercase tracking-wide">Professional Details</h3>
+                
+                <div className="space-y-4">
+                    <div>
+                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Job Title / Service</label>
+                    <div className="relative">
+                        <Briefcase className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                        <input 
+                            type="text" 
+                            placeholder="e.g. Professional Plumber" 
+                            required 
+                            className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent outline-none focus:border-green-500" 
+                            value={formData.job_title} 
+                            onChange={(e) => setFormData({...formData, job_title: e.target.value})} 
+                        />
+                    </div>
+                    </div>
+
+                    <div>
+                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Hourly Rate (₦)</label>
+                    <div className="relative">
+                        <DollarSign className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                        <input 
+                            type="number" 
+                            required
+                            className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent outline-none focus:border-green-500" 
+                            value={formData.hourly_rate} 
+                            onChange={(e) => setFormData({...formData, hourly_rate: Number(e.target.value)})} 
+                        />
+                    </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* BIO */}
+            <div>
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Professional Bio</label>
               <textarea 
-                value={bio}
-                onChange={(e) => setBio(e.target.value)}
+                className="w-full p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent outline-none focus:border-green-500 h-32 text-sm" 
                 placeholder="Describe your skills and experience..."
-                className="w-full pl-10 pr-4 py-3 h-32 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-green-500 outline-none transition resize-none dark:text-white" 
+                value={formData.bio} 
+                onChange={(e) => setFormData({...formData, bio: e.target.value})} 
               />
             </div>
-          </div>
 
+            <button type="submit" disabled={saving} className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-bold shadow-lg shadow-green-500/30 transition disabled:opacity-70 flex justify-center items-center">
+              {saving ? <Loader2 className="animate-spin w-5 h-5" /> : <><Save className="w-5 h-5 mr-2" /> Save & Go to Dashboard</>}
+            </button>
+
+          </form>
         </div>
-
-        <button 
-          onClick={handleSave}
-          disabled={saving}
-          className="w-full bg-green-600 text-white py-4 rounded-xl font-bold shadow-lg shadow-green-500/30 hover:bg-green-700 transition flex items-center justify-center transform active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
-        >
-          {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Save className="w-5 h-5 mr-2" /> Save Profile</>}
-        </button>
-
       </main>
     </div>
   );
