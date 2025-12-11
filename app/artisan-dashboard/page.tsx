@@ -28,7 +28,7 @@ export default function ArtisanDashboard() {
       }
       setUser(user);
 
-      // 1. Fetch Wallet Balance (Earnings)
+      // 1. Fetch Wallet Balance
       const { data: wallet } = await supabase
           .from('wallets')
           .select('balance')
@@ -37,14 +37,12 @@ export default function ArtisanDashboard() {
       if (wallet) setBalance(wallet.balance);
 
       // 2. Fetch Job Stats
-      // Active: 'accepted' or 'in_progress'
       const { count: active } = await supabase
         .from('bookings')
         .select('*', { count: 'exact', head: true })
         .eq('artisan_id', user.id)
         .in('status', ['accepted', 'in_progress']);
       
-      // Completed: 'completed'
       const { count: completed } = await supabase
         .from('bookings')
         .select('*', { count: 'exact', head: true })
@@ -54,7 +52,7 @@ export default function ArtisanDashboard() {
       setActiveJobsCount(active || 0);
       setCompletedJobsCount(completed || 0);
 
-      // 3. Fetch Recent Job Requests (Pending)
+      // 3. Fetch Recent Job Requests
       const { data: pending } = await supabase
         .from('bookings')
         .select('*')
@@ -98,8 +96,8 @@ export default function ArtisanDashboard() {
             </p>
           </div>
 
-          {/* MOBILE NAV GRID (For Phones) */}
-          <div className="md:hidden grid grid-cols-4 gap-3 mb-8">
+          {/* MOBILE NAV GRID (Updated to include Messages) */}
+          <div className="md:hidden grid grid-cols-3 gap-3 mb-8">
             <Link href="/my-work" className="flex flex-col items-center justify-center bg-white dark:bg-slate-900 p-3 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 active:scale-95 transition">
                 <Briefcase className="w-6 h-6 text-green-600 mb-1" />
                 <span className="text-[10px] font-bold text-gray-600 dark:text-gray-300">My Jobs</span>
@@ -107,6 +105,10 @@ export default function ArtisanDashboard() {
             <Link href="/find-work" className="flex flex-col items-center justify-center bg-white dark:bg-slate-900 p-3 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 active:scale-95 transition">
                 <Search className="w-6 h-6 text-purple-600 mb-1" />
                 <span className="text-[10px] font-bold text-gray-600 dark:text-gray-300">Find Work</span>
+            </Link>
+            <Link href="/messages?returnTo=/artisan-dashboard" className="flex flex-col items-center justify-center bg-white dark:bg-slate-900 p-3 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 active:scale-95 transition">
+                <MessageSquare className="w-6 h-6 text-blue-500 mb-1" />
+                <span className="text-[10px] font-bold text-gray-600 dark:text-gray-300">Chats</span>
             </Link>
             <Link href="/wallet" className="flex flex-col items-center justify-center bg-white dark:bg-slate-900 p-3 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 active:scale-95 transition">
                 <Wallet className="w-6 h-6 text-orange-500 mb-1" />
@@ -118,7 +120,7 @@ export default function ArtisanDashboard() {
             </Link>
           </div>
 
-          {/* REAL STATS CARDS */}
+          {/* STATS CARDS */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-8">
             <Link href="/wallet" className="bg-green-900 dark:bg-green-950 text-white p-6 rounded-xl shadow-lg relative overflow-hidden group hover:scale-[1.02] transition cursor-pointer">
               <div className="absolute top-0 right-0 p-4 opacity-10"><Wallet className="w-24 h-24" /></div>
