@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { LayoutDashboard, Briefcase, MessageSquare, Wallet, Settings, LogOut, Plus, Repeat, Loader2, ArrowUpRight } from 'lucide-react';
+import { LayoutDashboard, Briefcase, MessageSquare, Wallet, Settings, Plus, Loader2 } from 'lucide-react';
 import { createClient } from '../../utils/supabase/client'; 
 import Navbar from '@/components/Navbar'; 
 
@@ -11,6 +11,7 @@ export default function Dashboard() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [balance, setBalance] = useState(0);
+  const [activeJobsCount, setActiveJobsCount] = useState(0); // Real state
 
   useEffect(() => {
     const checkUser = async () => {
@@ -22,7 +23,7 @@ export default function Dashboard() {
       } else {
         setUser(user);
 
-        // --- SELF-HEALING: WALLET ---
+        // 1. Fetch Wallet
         const { data: wallet } = await supabase
           .from('wallets')
           .select('balance')
@@ -32,13 +33,10 @@ export default function Dashboard() {
         if (wallet) {
             setBalance(wallet.balance);
         } else {
-            // If wallet is missing, create it instantly
             await supabase.from('wallets').insert({ user_id: user.id, balance: 0 });
-            setBalance(0);
         }
 
-        // --- SELF-HEALING: PROFILE ---
-        // If profile is missing, create a blank client profile
+        // 2. SELF HEALING PROFILE (Just in case)
         const { data: profile } = await supabase.from('profiles').select('id').eq('id', user.id).maybeSingle();
         if (!profile) {
             await supabase.from('profiles').insert({ 
@@ -47,6 +45,17 @@ export default function Dashboard() {
                 role: 'client'
             });
         }
+
+        // 3. FETCH REAL ACTIVE JOBS COUNT (The Fix)
+        // Counts bookings that are NOT completed and NOT rejected
+        const { count } = await supabase
+            .from('bookings')
+            .select('*', { count: 'exact', head: true })
+            .eq('client_id', user.id)
+            .neq('status', 'completed')
+            .neq('status', 'rejected');
+        
+        if (count !== null) setActiveJobsCount(count);
         
         setLoading(false);
       }
@@ -98,7 +107,8 @@ export default function Dashboard() {
 
             <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm">
               <div className="flex items-center justify-between mb-4"><span className="text-gray-500 dark:text-gray-400 text-sm font-medium">Active Jobs</span><Briefcase className="w-5 h-5 text-green-500" /></div>
-              <div className="text-2xl font-bold text-gray-900 dark:text-white">0</div>
+              {/* REAL DATA HERE */}
+              <div className="text-2xl font-bold text-gray-900 dark:text-white">{activeJobsCount}</div>
             </div>
 
             <Link href="/messages?returnTo=/dashboard" className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm hover:border-green-500 dark:hover:border-green-500 transition cursor-pointer group">
