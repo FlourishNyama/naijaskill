@@ -30,12 +30,14 @@ export default function ArtisanSettingsPage() {
       if (!user) { router.push('/login'); return; }
       setUser(user);
 
+      // Try to fetch existing profile
       const { data: profile } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .single();
 
+      // If profile exists, load data. If not, just use defaults (User will create it on Save)
       if (profile) {
         setFormData({
           full_name: profile.full_name || '',
@@ -84,26 +86,36 @@ export default function ArtisanSettingsPage() {
     }
     setSaving(true);
 
-    // 1. Save Data & Force Role to 'artisan'
+    // 1. UPSERT (Create or Update) the Profile
+    // This fixes the "Missing Profile" issue permanently.
     const { error } = await supabase
       .from('profiles')
-      .update({
+      .upsert({
+        id: user.id, // Mandatory for creation
         full_name: formData.full_name,
         location: formData.location,
         bio: formData.bio,
         job_title: formData.job_title,
         hourly_rate: formData.hourly_rate,
         avatar_url: formData.avatar_url,
-        role: 'artisan' // <--- Crucial: Promotes them to Artisan
-      })
-      .eq('id', user.id);
+        role: 'artisan' // Force role
+      });
+
+    // 2. Ensure Wallet Exists (Self-Healing)
+    const { data: wallet } = await supabase.from('wallets').select('id').eq('user_id', user.id).single();
+    if (!wallet) {
+        await supabase.from('wallets').insert({ user_id: user.id, balance: 0 });
+    }
+
+    // 3. Update Auth Metadata
+    await supabase.auth.updateUser({ data: { role: 'artisan' } });
 
     setSaving(false);
 
     if (error) {
-      alert("Error updating profile: " + error.message);
+      alert("Error saving profile: " + error.message);
     } else {
-      alert("Artisan Profile updated successfully!");
+      alert("Artisan Profile active! You are now visible on the Browse page.");
       router.push('/artisan-dashboard');
       router.refresh();
     }
@@ -121,7 +133,6 @@ export default function ArtisanSettingsPage() {
         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800">
           <form onSubmit={handleSave} className="space-y-6">
             
-            {/* Avatar Section */}
             <div className="flex flex-col items-center mb-6">
               <div className="relative w-24 h-24 mb-3">
                 <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-green-50 dark:border-slate-800 shadow-sm relative bg-gray-100">
@@ -136,20 +147,25 @@ export default function ArtisanSettingsPage() {
                   <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" disabled={uploading} />
                 </label>
               </div>
-              <p className="text-xs text-gray-500">Professional Photo Required</p>
+              <p className="text-xs text-gray-500">Professional Photo</p>
             </div>
 
-            {/* Inputs */}
-            <div>
-              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Full Name</label>
-              <input type="text" className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent outline-none focus:border-green-500" value={formData.full_name} onChange={(e) => setFormData({...formData, full_name: e.target.value})} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Full Name</label>
+                <input type="text" className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent outline-none focus:border-green-500" value={formData.full_name} onChange={(e) => setFormData({...formData, full_name: e.target.value})} />
+                </div>
+                <div>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Location</label>
+                <input type="text" placeholder="e.g. Lagos" className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent outline-none focus:border-green-500" value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} />
+                </div>
             </div>
 
             <div className="pt-4 border-t border-gray-100 dark:border-gray-800">
                 <h3 className="text-sm font-bold text-green-600 mb-4 uppercase tracking-wide">Professional Details</h3>
                 <div className="space-y-4">
                     <div>
-                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Job Title (e.g. Plumber)</label>
+                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Job Title</label>
                     <div className="relative">
                         <Briefcase className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
                         <input type="text" required className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent outline-none focus:border-green-500" value={formData.job_title} onChange={(e) => setFormData({...formData, job_title: e.target.value})} />
@@ -163,6 +179,11 @@ export default function ArtisanSettingsPage() {
                     </div>
                     </div>
                 </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Professional Bio</label>
+              <textarea className="w-full p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent outline-none focus:border-green-500 h-32 text-sm" value={formData.bio} onChange={(e) => setFormData({...formData, bio: e.target.value})} />
             </div>
 
             <button type="submit" disabled={saving} className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-bold shadow-lg shadow-green-500/30 transition disabled:opacity-70 flex justify-center items-center">
