@@ -1,245 +1,218 @@
 "use client";
-import { useState, useEffect, useRef, Suspense } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
-import { Send, ArrowLeft, Plus, Search, User, Loader2 } from 'lucide-react';
+import Image from 'next/image';
+import { Send, Search, User, MoreVertical, ArrowLeft } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { createClient } from '../../utils/supabase/client';
 
-function ChatInterface() {
-  const supabase = createClient();
+export default function MessagesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const returnTo = searchParams.get('returnTo') || '/dashboard';
-  
+  const autoChatId = searchParams.get('chatWith'); 
+
   const [user, setUser] = useState<any>(null);
+  const [contacts, setContacts] = useState<any[]>([]);
+  const [selectedContact, setSelectedContact] = useState<any>(null);
   const [messages, setMessages] = useState<any[]>([]);
-  const [inputText, setInputText] = useState("");
-  const [chatPartner, setChatPartner] = useState<any>(null); 
-  const [recentChats, setRecentChats] = useState<any[]>([]);
-  
-  // Search
-  const [isSearching, setIsSearching] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [loading, setLoading] = useState(true);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const messagesEndRef = useRef<null | HTMLDivElement>(null);
+  const supabase = createClient();
 
-  // 1. INITIAL LOAD & REALTIME
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push('/login'); return; }
       setUser(user);
 
-      // Fetch ALL messages involving me
+      // 1. Fetch Contacts (Anyone you have chatted with)
+      const { data: sent } = await supabase.from('messages').select('receiver_id').eq('sender_id', user.id);
+      const { data: received } = await supabase.from('messages').select('sender_id').eq('receiver_id', user.id);
+
+      const contactIds = Array.from(new Set([
+        ...(sent?.map(m => m.receiver_id) || []),
+        ...(received?.map(m => m.sender_id) || [])
+      ]));
+
+      let loadedContacts = [];
+
+      if (contactIds.length > 0) {
+        const { data: profiles } = await supabase.from('profiles').select('*').in('id', contactIds);
+        loadedContacts = profiles || [];
+      }
+
+      // 2. Handle Auto-Chat (If clicked "Chat" from profile)
+      if (autoChatId) {
+        const existing = loadedContacts.find((c: any) => c.id === autoChatId);
+        if (existing) {
+            setSelectedContact(existing);
+        } else {
+            // Fetch new contact if not in list
+            const { data: newContact } = await supabase.from('profiles').select('*').eq('id', autoChatId).single();
+            if (newContact) {
+                loadedContacts = [newContact, ...loadedContacts];
+                setSelectedContact(newContact);
+            }
+        }
+      }
+      
+      setContacts(loadedContacts);
+      setLoading(false);
+    };
+    init();
+  }, [router, autoChatId]);
+
+  // Fetch Messages when Contact Selected
+  useEffect(() => {
+    if (!selectedContact || !user) return;
+    
+    const fetchMessages = async () => {
       const { data } = await supabase
         .from('messages')
         .select('*')
-        .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+        .or(`and(sender_id.eq.${user.id},receiver_id.eq.${selectedContact.id}),and(sender_id.eq.${selectedContact.id},receiver_id.eq.${user.id})`)
         .order('created_at', { ascending: true });
-      
       if (data) setMessages(data);
-
-      // Listen for NEW messages
-      const channel = supabase
-        .channel('realtime-messages')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
-          if (payload.new.sender_id === user.id || payload.new.receiver_id === user.id) {
-            setMessages((prev) => [...prev, payload.new]);
-          }
-        })
-        .subscribe();
-
-      return () => { supabase.removeChannel(channel); };
-    };
-    init();
-  }, [router]);
-
-  // 2. CALCULATE RECENT CHATS (Improved Logic)
-  useEffect(() => {
-    if (!user || messages.length === 0) return;
-
-    const processChats = async () => {
-      // Get all unique IDs of people I've talked to
-      const partnerIds = new Set<string>();
-      messages.forEach(msg => {
-        if (msg.sender_id !== user.id) partnerIds.add(msg.sender_id);
-        if (msg.receiver_id !== user.id) partnerIds.add(msg.receiver_id);
-      });
-
-      const uniqueIds = Array.from(partnerIds);
-      if (uniqueIds.length === 0) return;
-
-      // Fetch their profiles
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('*')
-        .in('id', uniqueIds);
-
-      // Build the list
-      const chats = uniqueIds.map(partnerId => {
-        // Find profile or create placeholder if missing
-        const profile = profiles?.find(p => p.id === partnerId) || { 
-          id: partnerId, 
-          full_name: 'Unknown User', 
-          role: 'user' 
-        };
-
-        // Find last message
-        const lastMsg = [...messages].reverse().find(m => 
-          (m.sender_id === partnerId && m.receiver_id === user.id) || 
-          (m.receiver_id === partnerId && m.sender_id === user.id)
-        );
-
-        return { ...profile, lastMsg };
-      });
-
-      // Sort by newest
-      chats.sort((a, b) => new Date(b.lastMsg?.created_at).getTime() - new Date(a.lastMsg?.created_at).getTime());
-      setRecentChats(chats);
+      scrollToBottom();
     };
 
-    processChats();
-  }, [messages, user]);
+    fetchMessages();
 
-  // 3. SEND MESSAGE
-  const handleSend = async (e: React.FormEvent) => {
+    // Realtime Subscription
+    const channel = supabase
+      .channel('chat')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
+        const msg = payload.new;
+        if ((msg.sender_id === user.id && msg.receiver_id === selectedContact.id) || 
+            (msg.sender_id === selectedContact.id && msg.receiver_id === user.id)) {
+          setMessages(prev => [...prev, msg]);
+          scrollToBottom();
+        }
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [selectedContact, user]);
+
+  const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+
+  const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputText.trim() || !chatPartner) return;
+    if (!newMessage.trim() || !selectedContact) return;
 
-    const { error } = await supabase.from('messages').insert({
-      content: inputText,
+    await supabase.from('messages').insert({
       sender_id: user.id,
-      sender_email: user.email,
-      receiver_id: chatPartner.id,
-      receiver_email: chatPartner.email,
+      receiver_id: selectedContact.id,
+      content: newMessage
     });
-
-    if (error) console.error(error);
-    setInputText("");
+    setNewMessage('');
   };
 
-  // 4. SEARCH USERS
-  useEffect(() => {
-    const searchUsers = async () => {
-      if (searchQuery.length < 2) { setSearchResults([]); return; }
-      const { data } = await supabase
-        .from('profiles')
-        .select('*')
-        .ilike('full_name', `%${searchQuery}%`)
-        .neq('id', user?.id)
-        .limit(5);
-      if (data) setSearchResults(data);
-    };
-    const delay = setTimeout(() => { if (isSearching) searchUsers(); }, 300);
-    return () => clearTimeout(delay);
-  }, [searchQuery, isSearching, user]);
-
-  // Filter Active Messages
-  const activeMessages = messages.filter(msg => {
-    if (!chatPartner) return false;
-    const isMe = msg.sender_id === user?.id;
-    return (isMe && msg.receiver_id === chatPartner.id) || (msg.sender_id === chatPartner.id && msg.receiver_id === user?.id);
-  });
+  if (loading) return null;
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50 dark:bg-slate-950 transition-colors duration-300">
+    <div className="h-screen flex flex-col bg-gray-50 dark:bg-slate-950 overflow-hidden">
       <Navbar />
-
-      <div className="flex-1 flex max-w-5xl mx-auto w-full border-x border-gray-200 dark:border-gray-800 bg-white dark:bg-slate-900 shadow-xl my-0 md:my-4 md:rounded-xl overflow-hidden relative">
+      
+      {/* MAIN CONTAINER: Flex row on Desktop, switched visibility on Mobile */}
+      <div className="flex flex-1 overflow-hidden max-w-6xl mx-auto w-full border-x border-gray-200 dark:border-gray-800 bg-white dark:bg-slate-900 shadow-sm">
         
-        {/* --- LEFT SIDEBAR --- */}
-        <div className={`w-full md:w-80 border-r border-gray-100 dark:border-gray-800 flex flex-col bg-white dark:bg-slate-900 ${chatPartner ? 'hidden md:flex' : 'flex'}`}>
-          
-          <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <Link href={returnTo} className="text-gray-500 hover:text-green-600 transition">
-                <ArrowLeft className="w-5 h-5" />
-              </Link>
-              <h2 className="font-bold text-lg text-gray-800 dark:text-white">Messages</h2>
+        {/* CONTACT LIST (Sidebar) */}
+        {/* Hidden on mobile if a chat is selected */}
+        <div className={`w-full md:w-80 border-r border-gray-200 dark:border-gray-800 flex flex-col ${selectedContact ? 'hidden md:flex' : 'flex'}`}>
+          <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-slate-900">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Messages</h2>
+            <div className="relative">
+                <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+                <input type="text" placeholder="Search chats..." className="w-full pl-9 pr-4 py-2 rounded-lg bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-700 text-sm outline-none focus:border-green-500" />
             </div>
-            <button onClick={() => { setIsSearching(!isSearching); setSearchQuery(""); }} className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 p-2 rounded-full">
-              {isSearching ? <ArrowLeft className="w-4 h-4"/> : <Plus className="w-4 h-4" />}
-            </button>
           </div>
           
-          {isSearching ? (
-            <div className="p-4 flex-1">
-              <input type="text" autoFocus placeholder="Search..." className="w-full p-3 bg-gray-100 dark:bg-slate-800 rounded-lg text-sm mb-4 dark:text-white" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
-              {searchResults.map(result => (
-                <div key={result.id} onClick={() => { setChatPartner(result); setIsSearching(false); }} className="flex items-center p-3 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer">
-                  <div className="w-10 h-10 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center text-green-700 font-bold mr-3">{result.full_name?.substring(0,2).toUpperCase()}</div>
-                  <p className="text-sm font-bold dark:text-white">{result.full_name}</p>
+          <div className="flex-1 overflow-y-auto">
+            {contacts.map(contact => (
+              <div key={contact.id} onClick={() => setSelectedContact(contact)} className={`p-4 flex items-center gap-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800 transition border-b border-gray-100 dark:border-gray-800 ${selectedContact?.id === contact.id ? 'bg-green-50 dark:bg-slate-800' : ''}`}>
+                <div className="w-12 h-12 rounded-full bg-gray-200 dark:bg-slate-700 overflow-hidden relative flex-shrink-0">
+                    {contact.avatar_url ? <Image src={contact.avatar_url} alt="" fill className="object-cover"/> : <User className="w-6 h-6 m-auto mt-3 text-gray-400"/>}
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="flex-1 overflow-y-auto">
-              {recentChats.length === 0 ? (
-                <div className="p-8 text-center text-gray-400 text-sm">No conversations yet.<br/>Tap + to find someone.</div>
-              ) : (
-                recentChats.map(chat => (
-                  <div key={chat.id} onClick={() => setChatPartner(chat)} className={`flex items-center p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800 border-b border-gray-50 dark:border-slate-800/50 ${chatPartner?.id === chat.id ? "bg-green-50 dark:bg-slate-800" : ""}`}>
-                    <div className="relative w-12 h-12 mr-4 bg-gray-200 dark:bg-slate-700 rounded-full flex items-center justify-center text-gray-500 font-bold text-lg">
-                      {chat.full_name?.substring(0,2).toUpperCase() || "?"}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-baseline mb-1">
-                        <h3 className="font-bold text-gray-900 dark:text-white truncate">{chat.full_name}</h3>
-                        <span className="text-[10px] text-gray-400">{new Date(chat.lastMsg?.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                      </div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{chat.lastMsg?.content}</p>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          )}
+                <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-gray-900 dark:text-white truncate">{contact.full_name}</h3>
+                    <p className="text-xs text-gray-500 truncate">{contact.job_title || 'User'}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* --- RIGHT SIDE --- */}
-        <div className={`flex-1 flex flex-col bg-[#e5ddd5]/30 dark:bg-slate-950 ${!chatPartner ? 'hidden md:flex' : 'flex'}`}> 
-          {chatPartner ? (
+        {/* CHAT WINDOW */}
+        {/* Hidden on mobile if NO chat is selected */}
+        <div className={`flex-1 flex flex-col ${!selectedContact ? 'hidden md:flex' : 'flex'}`}>
+          
+          {selectedContact ? (
             <>
-              <div className="p-4 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-gray-800 flex items-center z-10 shadow-sm">
-                <button onClick={() => setChatPartner(null)} className="md:hidden mr-3 text-gray-600 dark:text-white"><ArrowLeft className="w-6 h-6" /></button>
-                <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center text-white font-bold mr-3">{chatPartner.full_name?.substring(0,2).toUpperCase()}</div>
-                <div><h3 className="font-bold text-gray-900 dark:text-white">{chatPartner.full_name}</h3></div>
+              {/* Header */}
+              <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between bg-white dark:bg-slate-900">
+                <div className="flex items-center gap-3">
+                    <button onClick={() => setSelectedContact(null)} className="md:hidden p-1 -ml-2 text-gray-600 dark:text-gray-300">
+                        <ArrowLeft className="w-6 h-6" />
+                    </button>
+                    <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-slate-700 overflow-hidden relative">
+                        {selectedContact.avatar_url ? <Image src={selectedContact.avatar_url} alt="" fill className="object-cover"/> : <User className="w-5 h-5 m-auto mt-2.5 text-gray-400"/>}
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-gray-900 dark:text-white leading-tight">{selectedContact.full_name}</h3>
+                        <p className="text-xs text-green-600">Online</p>
+                    </div>
+                </div>
+                <button className="text-gray-400 hover:text-gray-600"><MoreVertical className="w-5 h-5"/></button>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                 {activeMessages.map((msg) => (
-                   <div key={msg.id} className={`flex ${msg.sender_id === user?.id ? "justify-end" : "justify-start"}`}>
-                     <div className={`max-w-[75%] rounded-2xl px-4 py-2 shadow-sm text-sm ${msg.sender_id === user?.id ? "bg-green-600 text-white rounded-tr-none" : "bg-white dark:bg-slate-800 text-gray-900 dark:text-white rounded-tl-none"}`}>
-                       <p>{msg.content}</p>
-                       <p className="text-[9px] text-right mt-1 opacity-70">{new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
-                     </div>
-                   </div>
-                 ))}
-                 <div ref={messagesEndRef} />
+              {/* Messages Area */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50/50 dark:bg-slate-950">
+                {messages.map((msg) => {
+                    const isMe = msg.sender_id === user.id;
+                    return (
+                        <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`max-w-[75%] p-3 rounded-2xl text-sm ${isMe ? 'bg-green-600 text-white rounded-br-none' : 'bg-white dark:bg-slate-800 text-gray-800 dark:text-gray-200 border border-gray-100 dark:border-gray-700 rounded-bl-none shadow-sm'}`}>
+                                <p>{msg.content}</p>
+                                <span className={`text-[10px] block mt-1 opacity-70 ${isMe ? 'text-green-100' : 'text-gray-400'}`}>
+                                    {new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                </span>
+                            </div>
+                        </div>
+                    );
+                })}
+                <div ref={messagesEndRef} />
               </div>
 
-              <div className="p-3 bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-gray-800">
-                <form onSubmit={handleSend} className="flex items-center gap-2">
-                  <input type="text" value={inputText} onChange={(e) => setInputText(e.target.value)} placeholder="Type a message..." className="flex-1 border border-gray-300 dark:border-gray-700 rounded-full px-4 py-3 focus:outline-none focus:border-green-500 dark:bg-slate-800 dark:text-white" />
-                  <button type="submit" className="bg-green-600 text-white p-3 rounded-full"><Send className="w-5 h-5" /></button>
-                </form>
-              </div>
+              {/* Input Area */}
+              <form onSubmit={sendMessage} className="p-4 bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-gray-800">
+                <div className="flex gap-2">
+                    <input 
+                        type="text" 
+                        value={newMessage}
+                        onChange={(e) => setNewMessage(e.target.value)}
+                        placeholder="Type a message..." 
+                        className="flex-1 p-3 rounded-xl bg-gray-100 dark:bg-slate-800 border-none outline-none text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500/20 transition"
+                    />
+                    <button type="submit" disabled={!newMessage.trim()} className="bg-green-600 text-white p-3 rounded-xl hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                        <Send className="w-5 h-5" />
+                    </button>
+                </div>
+              </form>
             </>
           ) : (
-            <div className="hidden md:flex flex-1 items-center justify-center text-gray-400 dark:text-gray-600"><p>Select a chat</p></div>
+            <div className="flex-1 flex flex-col items-center justify-center text-gray-400">
+                <div className="w-20 h-20 bg-gray-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
+                    <User className="w-10 h-10 opacity-20" />
+                </div>
+                <p>Select a contact to start chatting</p>
+            </div>
           )}
         </div>
+
       </div>
     </div>
-  );
-}
-
-export default function MessagesPage() {
-  return (
-    <Suspense fallback={<div className="p-10 text-center"><Loader2 className="animate-spin w-8 h-8 mx-auto" /></div>}>
-      <ChatInterface />
-    </Suspense>
   );
 }
