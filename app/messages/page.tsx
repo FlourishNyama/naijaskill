@@ -1,12 +1,15 @@
 "use client";
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
-import { Send, Search, User, MoreVertical, ArrowLeft } from 'lucide-react';
+import { Send, Search, User, MoreVertical, ArrowLeft, Loader2 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { createClient } from '../../utils/supabase/client';
 
-export default function MessagesPage() {
+// ---------------------------------------------------------
+// PART 1: The Main Logic (Renamed to MessagesContent)
+// ---------------------------------------------------------
+function MessagesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const autoChatId = searchParams.get('chatWith'); 
@@ -27,7 +30,7 @@ export default function MessagesPage() {
       if (!user) { router.push('/login'); return; }
       setUser(user);
 
-      // 1. Fetch Contacts (Anyone you have chatted with)
+      // Fetch Contacts
       const { data: sent } = await supabase.from('messages').select('receiver_id').eq('sender_id', user.id);
       const { data: received } = await supabase.from('messages').select('sender_id').eq('receiver_id', user.id);
 
@@ -43,13 +46,12 @@ export default function MessagesPage() {
         loadedContacts = profiles || [];
       }
 
-      // 2. Handle Auto-Chat (If clicked "Chat" from profile)
+      // Auto-Chat Logic
       if (autoChatId) {
         const existing = loadedContacts.find((c: any) => c.id === autoChatId);
         if (existing) {
             setSelectedContact(existing);
         } else {
-            // Fetch new contact if not in list
             const { data: newContact } = await supabase.from('profiles').select('*').eq('id', autoChatId).single();
             if (newContact) {
                 loadedContacts = [newContact, ...loadedContacts];
@@ -64,7 +66,7 @@ export default function MessagesPage() {
     init();
   }, [router, autoChatId]);
 
-  // Fetch Messages when Contact Selected
+  // Fetch Messages
   useEffect(() => {
     if (!selectedContact || !user) return;
     
@@ -80,7 +82,6 @@ export default function MessagesPage() {
 
     fetchMessages();
 
-    // Realtime Subscription
     const channel = supabase
       .channel('chat')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
@@ -110,17 +111,14 @@ export default function MessagesPage() {
     setNewMessage('');
   };
 
-  if (loading) return null;
+  if (loading) return <div className="h-full flex items-center justify-center"><Loader2 className="animate-spin text-green-600"/></div>;
 
   return (
     <div className="h-screen flex flex-col bg-gray-50 dark:bg-slate-950 overflow-hidden">
       <Navbar />
-      
-      {/* MAIN CONTAINER: Flex row on Desktop, switched visibility on Mobile */}
       <div className="flex flex-1 overflow-hidden max-w-6xl mx-auto w-full border-x border-gray-200 dark:border-gray-800 bg-white dark:bg-slate-900 shadow-sm">
         
-        {/* CONTACT LIST (Sidebar) */}
-        {/* Hidden on mobile if a chat is selected */}
+        {/* SIDEBAR */}
         <div className={`w-full md:w-80 border-r border-gray-200 dark:border-gray-800 flex flex-col ${selectedContact ? 'hidden md:flex' : 'flex'}`}>
           <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-slate-900">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Messages</h2>
@@ -129,7 +127,6 @@ export default function MessagesPage() {
                 <input type="text" placeholder="Search chats..." className="w-full pl-9 pr-4 py-2 rounded-lg bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-700 text-sm outline-none focus:border-green-500" />
             </div>
           </div>
-          
           <div className="flex-1 overflow-y-auto">
             {contacts.map(contact => (
               <div key={contact.id} onClick={() => setSelectedContact(contact)} className={`p-4 flex items-center gap-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800 transition border-b border-gray-100 dark:border-gray-800 ${selectedContact?.id === contact.id ? 'bg-green-50 dark:bg-slate-800' : ''}`}>
@@ -146,12 +143,9 @@ export default function MessagesPage() {
         </div>
 
         {/* CHAT WINDOW */}
-        {/* Hidden on mobile if NO chat is selected */}
         <div className={`flex-1 flex flex-col ${!selectedContact ? 'hidden md:flex' : 'flex'}`}>
-          
           {selectedContact ? (
             <>
-              {/* Header */}
               <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between bg-white dark:bg-slate-900">
                 <div className="flex items-center gap-3">
                     <button onClick={() => setSelectedContact(null)} className="md:hidden p-1 -ml-2 text-gray-600 dark:text-gray-300">
@@ -168,7 +162,6 @@ export default function MessagesPage() {
                 <button className="text-gray-400 hover:text-gray-600"><MoreVertical className="w-5 h-5"/></button>
               </div>
 
-              {/* Messages Area */}
               <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50/50 dark:bg-slate-950">
                 {messages.map((msg) => {
                     const isMe = msg.sender_id === user.id;
@@ -186,7 +179,6 @@ export default function MessagesPage() {
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Input Area */}
               <form onSubmit={sendMessage} className="p-4 bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-gray-800">
                 <div className="flex gap-2">
                     <input 
@@ -211,8 +203,18 @@ export default function MessagesPage() {
             </div>
           )}
         </div>
-
       </div>
     </div>
+  );
+}
+
+// ---------------------------------------------------------
+// PART 2: The Wrapper (Exported Default)
+// ---------------------------------------------------------
+export default function MessagesPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center dark:bg-slate-950"><Loader2 className="w-10 h-10 animate-spin text-green-600" /></div>}>
+      <MessagesContent />
+    </Suspense>
   );
 }
