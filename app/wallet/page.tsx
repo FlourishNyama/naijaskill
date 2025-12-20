@@ -49,31 +49,33 @@ export default function WalletPage() {
   }, [router]);
 
   // --- WITHDRAWAL LOGIC ---
+  // ... inside src/app/wallet/page.tsx
+
   const handleWithdraw = async () => {
     if (amountToWithdraw <= 0) return alert("Enter valid amount.");
     if (amountToWithdraw > balance) return alert("Insufficient funds.");
 
-    const confirm = window.confirm(`Withdraw ₦${amountToWithdraw.toLocaleString()}?`);
+    const confirm = window.confirm(`Request withdrawal of ₦${amountToWithdraw.toLocaleString()}?`);
     if (!confirm) return;
 
-    // 1. Deduct Balance
+    // 1. Deduct Balance Immediately (To prevent double withdrawal)
     const newBalance = balance - amountToWithdraw;
     const { error } = await supabase.from('wallets').update({ balance: newBalance }).eq('user_id', user.id);
 
     if (!error) {
-        // 2. Record Transaction
+        // 2. Record Transaction as PENDING
         await supabase.from('transactions').insert({
             user_id: user.id,
             type: 'withdrawal',
             amount: amountToWithdraw,
-            description: 'Withdrawal to Bank',
-            status: 'success'
+            description: 'Withdrawal Request',
+            status: 'pending' // <--- THIS IS THE KEY FIX
         });
 
         setBalance(newBalance);
         setAmountToWithdraw(0);
-        alert("Withdrawal Successful!");
-        window.location.reload(); // Refresh to show new history
+        alert("Withdrawal Request Submitted! Admin will review shortly.");
+        window.location.reload(); 
     } else {
         alert("Error: " + error.message);
     }
