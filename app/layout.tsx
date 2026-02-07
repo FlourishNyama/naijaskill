@@ -8,9 +8,17 @@ import Footer from '@/components/Footer';
 
 const inter = Inter({ subsets: ["latin"] });
 
-export const metadata: Metadata = {
-  title: "NaijaSkill",
-  description: "Hire expert artisans in Nigeria",
+export const metadata = {
+  title: 'Elitejob | Hire Verified Artisans in Nigeria',
+  description: 'The safest way to hire plumbers, carpenters, and electricians in Lagos and Abuja. Verified by guarantors and secured with escrow.',
+  openGraph: {
+    title: 'Elitejob | Hire Verified Artisans in Nigeria',
+    description: 'The safest way to hire plumbers, carpenters, and electricians. Verified by guarantors and secured with escrow.',
+    url: 'https://elitejobinternational.com',
+    siteName: 'EliteJob International',
+    locale: 'en_NG',
+    type: 'website',
+  },
 };
 
 export default function RootLayout({
