@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
 import { Menu, X, LayoutDashboard, Home, LogOut, Settings, Search, ChevronDown, Briefcase, Repeat, Loader2 } from 'lucide-react';
 import { createClient } from '../utils/supabase/client';
@@ -92,11 +93,21 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           
-          <Link href="/" className="flex items-center">
-            <span className="text-2xl font-bold text-green-900 dark:text-white tracking-tight">
-              Naija<span className="text-green-600 dark:text-green-400">Skill</span>
-            </span>
-          </Link>
+        <Link href="/" className="flex items-center gap-2">
+  <div className="relative w-10 h-10">
+    {/* The Icon Part */}
+    <Image 
+      src="/logo.png" 
+      alt="Elitejob Logo" 
+      fill
+      className="object-contain"
+    />
+  </div>
+  {/* The Text Part (Optional - if you want text next to the logo) */}
+  <span className="text-xl font-bold text-blue-900 tracking-tight">
+    ELITEJOB
+  </span>
+</Link>
 
           {!user ? (
             /* LOGGED OUT VIEW */
