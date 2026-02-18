@@ -7,7 +7,7 @@ export default function Footer() {
         
         {/* Brand */}
         <div>
-          <h2 className="text-2xl font-bold text-green-500 mb-4">NaijaSkill</h2>
+          <h2 className="text-2xl font-bold text-green-500 mb-4">Elitejob International</h2>
           <p className="text-gray-400 text-sm leading-relaxed">
             Connecting Nigeria's finest artisans with clients who value quality. Secure, fast, and reliable.
           </p>
@@ -42,14 +42,14 @@ export default function Footer() {
             <li>Abuja, Nigeria</li>
             <li>+234 806 977 0191</li>
             <li>+234 808 505 4532</li>
-            <li>support@naijaskill.com</li>
+            <li>costumercare@elitejobinternational.com</li>
           </ul>
         </div>
 
       </div>
       
       <div className="text-center text-gray-600 text-xs mt-12 border-t border-gray-800 pt-8">
-        © {new Date().getFullYear()} NaijaSkill. All rights reserved.
+        © {new Date().getFullYear()} Elitejob International. All rights reserved.
       </div>
     </footer>
   );
