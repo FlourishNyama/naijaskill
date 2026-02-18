@@ -97,14 +97,14 @@ export default function Navbar() {
     {/* The Icon Part */}
     <Image 
       src="/logo.png" 
-      alt="Elitejob Logo" 
+      alt="Elitejob International Logo" 
       fill
       className="object-contain"
     />
   </div>
   {/* The Text Part (Optional - if you want text next to the logo) */}
   <span className="text-xl font-bold text-blue-900 tracking-tight">
-    ELITEJOB
+    ELITEJOB INTERNATIONAL
   </span>
 </Link>
 
