@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
 import { Menu, X, LayoutDashboard, Home, LogOut, Settings, Search, ChevronDown, Briefcase, Repeat, Loader2 } from 'lucide-react';
 import { createClient } from '../utils/supabase/client';
