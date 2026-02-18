@@ -9,17 +9,18 @@ import Footer from '@/components/Footer';
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-  title: 'Elitejob | Hire Verified Artisans in Nigeria',
-  description: 'The safest way to hire plumbers, carpenters, and electricians in Lagos and Abuja. Verified by guarantors and secured with escrow.',
+  title: 'Elite Job | Hire Verified Artisans in Nigeria', 
+  description: 'The safest way to hire plumbers, carpenters, and electricians. Elite Job connects you with verified artisans in Lagos and Abuja.',
+  keywords: ['Elite Job', 'Elitejob', 'Elite', 'Elite International', 'Artisans Nigeria', 'NaijaSkill'],
   openGraph: {
-    title: 'Elitejob | Hire Verified Artisans in Nigeria',
-    description: 'The safest way to hire plumbers, carpenters, and electricians. Verified by guarantors and secured with escrow.',
+    title: 'Elite Job | Hire Verified Artisans',
+    description: 'Find verified plumbers and electricians near you.',
     url: 'https://elitejobinternational.com',
-    siteName: 'EliteJob International',
+    siteName: 'Elite Job',
     locale: 'en_NG',
     type: 'website',
   },
-};
+}
 
 export default function RootLayout({
   children,
