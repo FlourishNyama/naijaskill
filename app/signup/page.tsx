@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 "use client";
 import { useState } from 'react';
 import Link from 'next/link';
@@ -48,7 +50,7 @@ export default function SignUpPage() {
       router.push('/login');
     }
   };
-
+  const [showPassword, setShowPassword] = useState(false);
   return (
     <div className="min-h-screen flex bg-white dark:bg-slate-950 transition-colors duration-300">
       
@@ -154,17 +156,22 @@ export default function SignUpPage() {
 
           <div>
             <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1 uppercase">Password</label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
-              <input 
-                required
-                type="password" 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••" 
-                className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-lg focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-green-500 outline-none transition text-gray-900 dark:text-white" 
-              />
-            </div>
+            <div className="relative w-full">
+  <input
+    type={showPassword ? "text" : "password"} 
+    name="password"
+    id="password"
+    placeholder="Enter your password"
+    className="w-full px-4 py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#00C853]" 
+  />
+  <button
+    type="button"
+    onClick={() => setShowPassword(!showPassword)}
+    className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-[#00C853]"
+  >
+    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+  </button>
+</div>
           </div>
 
           {userType === 'artisan' && (
