@@ -127,7 +127,7 @@ export default function LoginPage() {
 </div>
 
           <div className="flex items-center justify-end">
-            <Link href="/update-password" className="text-sm font-medium text-green-600 hover:text-green-500">
+            <Link href="/forgot-password" className="text-sm font-medium text-green-600 hover:text-green-500">
               Forgot password?
             </Link>
           </div>
