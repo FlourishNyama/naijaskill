@@ -1,34 +1,82 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react'; // Added useEffect
 import { createClient } from '../../utils/supabase/client';
 import { useRouter } from 'next/navigation';
-import { Lock, Eye, EyeOff } from 'lucide-react';
+import { Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
 
 export default function UpdatePassword() {
-  const supabase = createClient();
   const router = useRouter();
+  const supabase = createClient();
+  
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  
-  // States for our Eye icons
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
-  // States for loading and messages
   const [loading, setLoading] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(true); // New state to wait for token
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+
+  // STEP 1: Wait for the secret token to be processed
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      
+      // If we don't have a session, we wait a tiny bit and try one last time
+      // This gives the browser time to read the URL fragment (#)
+      if (!data.session) {
+        setTimeout(async () => {
+          const { data: retryData } = await supabase.auth.getSession();
+          if (!retryData.session) {
+            setError("Session expired or invalid link. Please request a new reset link.");
+          }
+          setIsVerifying(false);
+        }, 1500);
+      } else {
+        setIsVerifying(false);
+      }
+    };
+    checkSession();
+  }, [supabase]);
 
   const handleUpdatePassword = async (e) => {
     e.preventDefault();
     setError('');
-    
+
     if (password !== confirmPassword) {
       setError("Passwords do not match.");
       return;
     }
-  
+
     setLoading(true);
+
+    // STEP 2: Update the password now that we know the session is active
+    const { error } = await supabase.auth.updateUser({ password });
+
+    if (error) {
+      setError(error.message);
+    } else {
+      setSuccess(true);
+      setTimeout(() => router.push('/login'), 3000);
+    }
+    setLoading(false);
+  };
+
+  // While checking the token, show a loading spinner
+  if (isVerifying) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-slate-950">
+        <Loader2 className="w-10 h-10 animate-spin text-[#00C853]" />
+      </div>
+    );
+  }
+
+  return (
+    // ... keep your existing return UI here ...
+    // (Ensure your "Save" button is inside the form)
+  );
+}
   
     // 1. First, we tell Supabase to look at the URL and "grab" the secret token
     // This ensures the session is active before updating
