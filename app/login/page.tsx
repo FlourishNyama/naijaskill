@@ -99,14 +99,22 @@ export default function LoginPage() {
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Lock className="h-5 w-5 text-gray-400" />
               </div>
-              <input 
-                required
-                type="password" 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-900 rounded-lg focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition text-gray-900 dark:text-white"
-              />
+              <div className="relative w-full">
+  <input
+    type={showPassword ? "text" : "password"} 
+    name="password"
+    id="password"
+    placeholder="Enter your password"
+    className="w-full px-4 py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#00C853]" 
+  />
+  <button
+    type="button"
+    onClick={() => setShowPassword(!showPassword)}
+    className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-[#00C853]"
+  >
+    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+  </button>
+</div>
             </div>
           </div>
 
