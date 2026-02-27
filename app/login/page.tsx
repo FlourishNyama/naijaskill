@@ -99,13 +99,16 @@ export default function LoginPage() {
     </div>
     
     {/* The Input Field */}
-    <input
-      type={showPassword ? "text" : "password"} 
-      name="password"
-      id="password"
-      placeholder="Enter your password"
-      className="w-full pl-10 pr-10 py-3 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00C853] dark:bg-slate-900 dark:text-white transition-colors" 
-    />
+<input
+  type={showPassword ? "text" : "password"} 
+  name="password"
+  id="password"
+  required // Added this to make sure it's not empty
+  value={password} // <--- THIS WAS MISSING
+  onChange={(e) => setPassword(e.target.value)} // <--- THIS WAS MISSING
+  placeholder="Enter your password"
+  className="w-full pl-10 pr-10 py-3 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00C853] dark:bg-slate-900 dark:text-white transition-colors" 
+/>
     
     {/* Right Toggle: The Eye */}
     <button
