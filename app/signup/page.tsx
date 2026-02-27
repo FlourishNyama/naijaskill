@@ -153,7 +153,7 @@ export default function SignUpPage() {
             </div>
           </div>
 
-          <div>
+          <div className="relative w-full">
             <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1 uppercase">Password</label>
             
   <input
