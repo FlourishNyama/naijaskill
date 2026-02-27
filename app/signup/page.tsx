@@ -21,6 +21,11 @@ export default function SignUpPage() {
   // 2. THE REAL SIGN UP FUNCTION
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault(); // Stop page from refreshing
+    if (password.length < 6) {
+      alert("Password must be at least 6 characters long!");
+      setLoading(false);
+      return;
+    }
     setLoading(true);
 
     const supabase = createClient();
@@ -165,13 +170,16 @@ export default function SignUpPage() {
     </div>
 
     {/* The Input Field */}
-    <input
-      type={showPassword ? "text" : "password"} 
-      name="password"
-      id="password"
-      placeholder="Enter your password"
-      className="w-full pl-10 pr-12 py-3 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00C853] dark:bg-slate-900 dark:text-white transition-colors" 
-    />
+<input
+  type={showPassword ? "text" : "password"} 
+  name="password"
+  id="password"
+  required // Makes sure the user doesn't leave it blank
+  value={password} // <--- Connects to your 'const [password]' state
+  onChange={(e) => setPassword(e.target.value)} // <--- Updates the state as they type
+  placeholder="Enter your password"
+  className="w-full pl-10 pr-12 py-3 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00C853] dark:bg-slate-900 dark:text-white transition-colors" 
+/>
     
     {/* Right Toggle: The Eye */}
     <button
