@@ -37,7 +37,7 @@ export default function UpdatePassword() {
     checkSession();
   }, [supabase]);
 
-  const handleUpdatePassword = async (e) => {
+  const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
