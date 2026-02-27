@@ -18,20 +18,20 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
   
-    // Use the createClient we imported at the top
+    // Initialize your client
     const supabase = createClient();
   
+    // The core login logic
     const { error } = await supabase.auth.signInWithPassword({
-      email: email,
-      password: password,
+      email,
+      password,
     });
   
     if (error) {
       alert(error.message);
       setLoading(false);
     } else {
-      // If successful, take them to the dashboard or home
-      router.push('/dashboard'); 
+      router.push('/dashboard'); // Or wherever your home page is
     }
   };
   const [showPassword, setShowPassword] = useState(false);
