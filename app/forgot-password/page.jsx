@@ -19,11 +19,9 @@ export default function ForgotPassword() {
     setError('');
     setMessage('');
 
-    // This tells Supabase to send the email with the secret token
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      // This sends them to the correct page AFTER they click the email link
-      redirectTo: `${window.location.origin}/update-password`, 
-    });
+        redirectTo: 'https://elitejobinternational.com/update-password',
+      });
 
     if (error) {
       setError(error.message);
