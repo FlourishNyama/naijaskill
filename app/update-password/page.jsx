@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Lock, Eye, EyeOff } from 'lucide-react';
 
 export default function UpdatePassword() {
+  const supabase = createClient();
   const router = useRouter();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -21,31 +22,33 @@ export default function UpdatePassword() {
   const handleUpdatePassword = async (e) => {
     e.preventDefault();
     setError('');
-
-    // Logic Check 1: Do the passwords match?
+    
     if (password !== confirmPassword) {
-      setError("Oops! Your passwords do not match.");
+      setError("Passwords do not match.");
       return;
     }
-
-    // Logic Check 2: Is it long enough?
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters long.");
-      return;
-    }
-
+  
     setLoading(true);
-
-    // The Supabase Magic: Update the user's password!
+  
+    // 1. First, we tell Supabase to look at the URL and "grab" the secret token
+    // This ensures the session is active before updating
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+  
+    if (sessionError || !sessionData.session) {
+      setError("Your session has expired. Please request a new reset link.");
+      setLoading(false);
+      return;
+    }
+  
+    // 2. Now that we've confirmed the token is valid, we update the password
     const { error } = await supabase.auth.updateUser({
       password: password
     });
-
+  
     if (error) {
       setError(error.message);
     } else {
       setSuccess(true);
-      // Wait 3 seconds so they can read the success message, then send to login
       setTimeout(() => {
         router.push('/login');
       }, 3000);
@@ -53,7 +56,6 @@ export default function UpdatePassword() {
     
     setLoading(false);
   };
-
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 dark:bg-slate-950 p-4 transition-colors">
       <div className="w-full max-w-md p-8 bg-white dark:bg-slate-900 rounded-lg shadow-md border dark:border-gray-800">
