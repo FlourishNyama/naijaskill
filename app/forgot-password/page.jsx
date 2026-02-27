@@ -13,7 +13,7 @@ export default function ForgotPassword() {
   // Turn on the Supabase phone line
   const supabase = createClient();
 
-  const handleResetPassword = async (e: React.FormEvent) => {
+  const handleResetPassword = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
