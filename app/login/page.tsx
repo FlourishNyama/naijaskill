@@ -14,31 +14,24 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
-
+  
+    // Use the createClient we imported at the top
     const supabase = createClient();
-
-    // 1. Ask Supabase to Log In
-    const { data, error } = await supabase.auth.signInWithPassword({
+  
+    const { error } = await supabase.auth.signInWithPassword({
       email: email,
       password: password,
     });
-
+  
     if (error) {
-      alert("❌ Login Failed: " + error.message);
+      alert(error.message);
       setLoading(false);
     } else {
-      // 2. Check if they are Client or Artisan
-      // (We stored this in "user_metadata" during signup)
-      const role = data.user.user_metadata.role;
-      
-      if (role === 'artisan') {
-        router.push('/artisan-dashboard');
-      } else {
-        router.push('/dashboard');
-      }
+      // If successful, take them to the dashboard or home
+      router.push('/dashboard'); 
     }
   };
   const [showPassword, setShowPassword] = useState(false);
