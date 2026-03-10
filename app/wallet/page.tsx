@@ -74,7 +74,7 @@ export default function WalletPage() {
       reference: `elite_kora_${Date.now()}`,
       amount: amountToFund,
       currency: "NGN",
-      methods: ["card", "bank_transfer", "ussd", "mobile_money"],
+      channels: ["card", "bank_transfer", "ussd", "pay_with_bank"],
       customer: {
         name: user?.user_metadata?.full_name || 'Elitejob User',
         email: user?.email || 'user@elitejob.com',
