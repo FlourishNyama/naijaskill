@@ -60,7 +60,8 @@ export default function FindWorkPage() {
         .from('job_applications')
         .insert({
             job_id: jobId,
-            artisan_id: user.id
+            artisan_id: user.id,
+            status: 'pending'
         });
 
     if (error) {
