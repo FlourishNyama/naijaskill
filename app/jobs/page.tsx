@@ -33,7 +33,25 @@ export default function MyJobsPage() {
       if (bookings) setContracts(bookings);
 
       // 2. Fetch Posted Jobs + Application Counts
-      const { data: posts } = await supabase.from('jobs').select('*, job_applications(count)').eq('client_id', user.id).order('created_at', { ascending: false });
+      const { data: posts } = await supabase
+  .from('jobs')
+  .select(`
+    *,
+    job_applications (
+      id,
+      status
+    )
+  `)
+  .eq('client_id', user.id)
+  .order('created_at', { ascending: false });
+
+if (posts) {
+  const formattedPosts = posts.map(p => ({
+    ...p,
+    appCount: p.job_applications ? p.job_applications.filter((a: any) => a.status === 'pending').length : 0
+  }));
+  setPostedJobs(formattedPosts);
+}
       
       if (posts) {
         // Process the count from Supabase format
