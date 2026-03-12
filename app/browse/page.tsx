@@ -15,6 +15,7 @@ function BrowseContent() {
   const [category, setCategory] = useState("All");
   const [artisans, setArtisans] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dynamicCategories, setDynamicCategories] = useState<string[]>(["All"]);
 
   useEffect(() => {
     const fetchArtisans = async () => {
@@ -33,6 +34,11 @@ function BrowseContent() {
         setArtisans(data || []);
       }
       setLoading(false);
+      if (data) {
+        setArtisans(data);
+        const uniqueJobs = Array.from(new Set(data.map(a => a.job_title).filter(Boolean)));
+        setDynamicCategories(["All", ...uniqueJobs]);
+      }
     };
 
     fetchArtisans();
@@ -67,17 +73,20 @@ function BrowseContent() {
           </div>
           
           <div className="flex overflow-x-auto pb-2 gap-2 scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
-            {CATEGORIES.map((cat) => (
-              <button 
-                key={cat}
-                onClick={() => { setCategory(cat); setSearchTerm(cat === "All" ? "" : cat); }}
-                className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition ${
-                  category === cat ? "bg-green-600 text-white shadow-md" : "bg-white dark:bg-slate-900 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-800"
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
+          {dynamicCategories.map((cat) => (
+  <button 
+    key={cat}
+    onClick={() => { 
+      setCategory(cat); 
+      setSearchTerm(cat === "All" ? "" : cat); 
+    }}
+    className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition ${
+      category === cat ? "bg-green-600 text-white shadow-md" : "bg-white dark:bg-slate-900 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-800"
+    }`}
+  >
+    {cat}
+  </button>
+))}
           </div>
         </div>
 
