@@ -53,14 +53,6 @@ if (posts) {
   setPostedJobs(formattedPosts);
 }
       
-      if (posts) {
-        // Process the count from Supabase format
-        const formattedPosts = posts.map(p => ({
-            ...p,
-            appCount: p.job_applications?.length > 0 ? p.job_applications[0].count : 0
-        }));
-        setPostedJobs(formattedPosts);
-      }
       setLoading(false);
     };
     fetchData();
