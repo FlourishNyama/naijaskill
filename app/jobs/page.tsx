@@ -48,7 +48,7 @@ export default function MyJobsPage() {
 if (posts) {
   const formattedPosts = posts.map(p => ({
     ...p,
-    appCount: p.job_applications ? p.job_applications.filter((a: any) => a.status === 'pending').length : 0
+    appCount: p.job_applications ? p.job_applications.length : 0
   }));
   setPostedJobs(formattedPosts);
 }
