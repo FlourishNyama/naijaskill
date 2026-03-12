@@ -103,7 +103,7 @@ export default function Navbar() {
     />
   </div>
   {/* The Text Part (Optional - if you want text next to the logo) */}
-  <span className="text-xl font-bold text-blue-900 tracking-tight">
+  <span className="text-xl font-bold text-[#20FF5F] tracking-tight uppercase">
     ELITEJOB INTERNATIONAL
   </span>
 </Link>
