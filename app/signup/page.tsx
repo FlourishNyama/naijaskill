@@ -17,6 +17,7 @@ export default function SignUpPage() {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
+  const [agreed, setAgreed] = useState(false);
 
   // 2. THE REAL SIGN UP FUNCTION
   const handleSignUp = async (e: React.FormEvent) => {
@@ -191,6 +192,21 @@ export default function SignUpPage() {
     </button>
   </div>
 </div>
+<div className="flex items-start gap-3 mb-6">
+  <input 
+    type="checkbox" 
+    id="terms"
+    checked={agreed}
+    onChange={(e) => setAgreed(e.target.checked)}
+    className="mt-1 w-4 h-4 rounded border-gray-300 text-[#20FF5F] focus:ring-[#20FF5F] transition"
+  />
+  <label htmlFor="terms" className="text-sm text-gray-600 dark:text-gray-400 leading-tight">
+    I agree to the 
+    <Link href="/terms" className="text-[#20FF5F] font-bold hover:underline mx-1">Terms of Service</Link> 
+    and 
+    <Link href="/privacy" className="text-[#20FF5F] font-bold hover:underline mx-1">Privacy Policy</Link>.
+  </label>
+</div>
 
           {userType === 'artisan' && (
             <div className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-100 dark:border-orange-900 flex items-start gap-3">
@@ -201,15 +217,15 @@ export default function SignUpPage() {
             </div>
           )}
 
-          <div className="pt-4">
-            <button 
-                type="submit"
-                disabled={loading}
-                className={`w-full py-4 rounded-xl font-bold text-white shadow-lg transition transform active:scale-95 flex justify-center items-center ${userType === 'client' ? 'bg-green-600 hover:bg-green-700 shadow-green-500/30' : 'bg-orange-600 hover:bg-orange-700 shadow-orange-500/30'} ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
-            >
-                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (userType === 'client' ? "Create Client Account" : "Create Artisan Account")}
-            </button>
-          </div>
+<div className="pt-4">
+    <button 
+        type="submit"
+        disabled={loading || !agreed}
+        className={`w-full py-4 rounded-xl font-bold text-white shadow-lg transition transform active:scale-95 flex justify-center items-center ${userType === 'client' ? 'bg-green-600 hover:bg-green-700 shadow-green-500/30' : 'bg-orange-600 hover:bg-orange-700 shadow-orange-500/30'} ${loading || !agreed ? 'opacity-70 cursor-not-allowed' : ''}`}
+    >
+        {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (userType === 'client' ? "Create Client Account" : "Create Artisan Account")}
+    </button>
+</div>
 
           <p className="text-center text-sm text-gray-600 dark:text-gray-400 mt-6">
             Already have an account?{' '}
