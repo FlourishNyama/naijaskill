@@ -6,11 +6,11 @@ export default function About() {
     <div className="min-h-screen bg-white dark:bg-slate-950">
       <Navbar />
       <div className="max-w-4xl mx-auto px-4 py-16 text-center">
-        <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-6">Empowering Nigerian Artisans</h1>
+        <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-6">Empowering Nigerian Skilled Workers</h1>
         <p className="text-lg text-gray-600 dark:text-gray-300 mb-8 leading-relaxed">
-          NaijaSkill is Nigeria's premier platform for connecting skilled artisans with clients who value quality. 
+          Elitejob International is Nigeria's premier platform for connecting skilled workers like the plumbers, carpenters etc with clients who value excellence. 
           Born from the need to bridge the trust gap in the service industry, we provide a secure, transparent, 
-          and efficient marketplace for everything from plumbing to photography.
+          and efficient marketplace for every skill.
         </p>
         <div className="grid md:grid-cols-3 gap-8 mt-12 text-left">
             <div className="p-6 bg-green-50 dark:bg-slate-900 rounded-xl">

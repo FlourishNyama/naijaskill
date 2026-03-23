@@ -78,11 +78,11 @@ export default function Home() {
       {/* --- HERO SECTION --- */}
       <section className="relative bg-green-50 dark:bg-slate-900 pt-16 pb-24 md:py-24 text-center px-4 transition-colors duration-300">
         <h1 className="text-4xl md:text-6xl font-extrabold text-gray-900 dark:text-white tracking-tight mb-4 leading-[1.1]">
-          Expert Artisans,<br />
+          Excellent Skilled Workers,<br />
           <span className="text-green-600 dark:text-green-400">Securely Hired.</span>
         </h1>
         <p className="text-base md:text-lg text-gray-600 dark:text-gray-300 mb-8 max-w-xl mx-auto leading-relaxed">
-          Connect with verified Nigerian professionals. Payments are held in escrow until you are 100% satisfied.
+          Hire Excellent and Trustworthy verified Nigerian skilled workers. Payments are held in escrow until you are 100% satisfied.
         </p>
         
         {/* --- SEARCH BAR (Refined for Mobile) --- */}
@@ -148,7 +148,7 @@ export default function Home() {
         <div className="flex justify-between items-end mb-6 md:mb-8">
           <div>
             <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Featured Pros</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Verified artisans near you</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Verified Skilled workers near you</p>
           </div>
           <Link href="/browse" className="text-green-600 dark:text-green-400 font-medium hover:underline flex items-center text-sm md:text-base">
             View All <ArrowRight className="w-4 h-4 ml-1" />
@@ -160,7 +160,7 @@ export default function Home() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
             {featuredArtisans.length === 0 ? (
-              <p className="text-gray-500 col-span-3 text-center py-10">No artisans found yet. Be the first to join!</p>
+              <p className="text-gray-500 col-span-3 text-center py-10">No skilled worker found yet. Be the first to join!</p>
             ) : (
               featuredArtisans.map((artisan) => (
                 <Link href={`/profile/${artisan.id}`} key={artisan.id} className="block group bg-white dark:bg-slate-900 rounded-xl border border-gray-100 dark:border-gray-800 hover:border-green-200 dark:hover:border-green-600 hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer">

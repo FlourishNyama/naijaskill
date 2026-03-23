@@ -9,11 +9,11 @@ import Footer from '@/components/Footer';
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-  title: 'Elite Job | Hire Verified Artisans in Nigeria', 
+  title: 'Elite Job | Hire Verified Skilled Workers in Nigeria', 
   description: 'The safest way to hire plumbers, carpenters, and electricians. Elite Job connects you with verified artisans in Lagos and Abuja.',
   keywords: ['Elite Job', 'Elitejob', 'Elite', 'Elite International', 'Artisans Nigeria', 'NaijaSkill'],
   openGraph: {
-    title: 'Elite Job | Hire Verified Artisans',
+    title: 'Elite Job | Hire Verified Skilled Workers',
     description: 'Find verified plumbers and electricians near you.',
     url: 'https://elitejobinternational.com',
     siteName: 'Elite Job',
