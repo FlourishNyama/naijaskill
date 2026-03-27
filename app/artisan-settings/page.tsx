@@ -165,7 +165,7 @@ export default function ArtisanSettingsPage() {
                     <div>
                       <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Hourly Rate (₦)</label>
                       <div className="relative">
-                          <NairaSign className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                          <NairaIcon className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
                           <input type="number" required className={`pl-10 ${inputClass}`} value={formData.hourly_rate} onChange={(e) => setFormData({...formData, hourly_rate: Number(e.target.value)})} />
                       </div>
                     </div>
