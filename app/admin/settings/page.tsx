@@ -96,7 +96,7 @@ export default function PlatformSettings() {
                         />
                         <span className="absolute right-4 top-3 text-slate-400 font-bold">%</span>
                     </div>
-                    <p className="text-xs text-slate-500 mt-1">Percentage deducted from Artisan earnings per job.</p>
+                    <p className="text-xs text-slate-500 mt-1">Percentage deducted from Worker's earnings per job.</p>
                 </div>
 
                 <div>
