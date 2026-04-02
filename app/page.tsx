@@ -135,8 +135,6 @@ export default function Home() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const worker = PREVIEW_WORKERS[currentWorker];
-
   return (
     <main className="min-h-screen bg-[#FAF7F2] dark:bg-slate-950 transition-colors duration-300">
       <Navbar />
