@@ -103,14 +103,6 @@ export default function Home() {
     fetchArtisans();
   }, []);
 
-  // ── Carousel autoplay ──
-  useEffect(() => {
-    carouselRef.current = setInterval(() => {
-      setCurrentWorker(prev => (prev + 1) % PREVIEW_WORKERS.length);
-    }, 3000);
-    return () => { if (carouselRef.current) clearInterval(carouselRef.current); };
-  }, []);
-
   // ── Search handlers (unchanged) ──
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -281,54 +273,43 @@ export default function Home() {
                 })}
               </div>
 
-              {/* ── ROTATING WORKER PREVIEW ── */}
-<div
-  className="relative overflow-hidden rounded-xl border border-gray-100 dark:border-gray-700 mb-3"
-  style={{ height: '76px' }}
-  onMouseEnter={() => { if (carouselRef.current) clearInterval(carouselRef.current); }}
-  onMouseLeave={() => {
-    carouselRef.current = setInterval(() => {
-      setCurrentWorker(prev => (prev + 1) % carouselWorkers.length);
-    }, 3000);
-  }}
->
-  {carouselWorkers.map((w, i) => (
-    <div
-      key={i}
-      className="absolute inset-0 flex items-center gap-3 px-4 bg-gray-50 dark:bg-slate-700 transition-all duration-500"
-      style={{
-        opacity: i === currentWorker ? 1 : 0,
-        transform: i === currentWorker ? 'translateY(0)' : 'translateY(10px)',
-        pointerEvents: i === currentWorker ? 'auto' : 'none',
-      }}
-    >
-      <div
-        className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
-        style={{ background: w.color }}
-      >
-        {w.initial}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="text-sm font-semibold text-gray-900 dark:text-white truncate">{w.name}</div>
-        <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{w.role} · {w.location}</div>
-      </div>
-      {/* ... (Star and Verified badge stays same) */}
-    </div>
-  ))}
-</div>
-
-{/* Update Carousel dots to use carouselWorkers.length */}
-<div className="flex justify-center gap-1.5 mb-4">
-  {carouselWorkers.map((_, i) => (
-    <button
-      key={i}
-      onClick={() => setCurrentWorker(i)}
-      className={`h-1.5 rounded-full border-none cursor-pointer ${
-        i === currentWorker ? 'w-4 bg-[#C9973A]' : 'w-1.5 bg-gray-300'
-      }`}
-    />
-  ))}
-</div>        <span className="text-[10px] font-semibold text-green-700 bg-green-50 dark:bg-green-900/30 dark:text-green-400 rounded-full px-2 py-0.5 border border-green-200 dark:border-green-800">
+       {/* ── ROTATING WORKER PREVIEW ── */}
+       <div
+                className="relative overflow-hidden rounded-xl border border-gray-100 dark:border-gray-700 mb-3"
+                style={{ height: '76px' }}
+                onMouseEnter={() => { if (carouselRef.current) clearInterval(carouselRef.current); }}
+                onMouseLeave={() => {
+                  carouselRef.current = setInterval(() => {
+                    setCurrentWorker(prev => (prev + 1) % carouselWorkers.length);
+                  }, 3000);
+                }}
+              >
+                {carouselWorkers.map((w, i) => (
+                  <div
+                    key={i}
+                    className="absolute inset-0 flex items-center gap-3 px-4 bg-gray-50 dark:bg-slate-700 transition-all duration-500"
+                    style={{
+                      opacity: i === currentWorker ? 1 : 0,
+                      transform: i === currentWorker ? 'translateY(0)' : 'translateY(10px)',
+                      pointerEvents: i === currentWorker ? 'auto' : 'none',
+                    }}
+                  >
+                    <div
+                      className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
+                      style={{ background: w.color }}
+                    >
+                      {w.initial}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-semibold text-gray-900 dark:text-white truncate">{w.name}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{w.role} · {w.location}</div>
+                    </div>
+                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                      <div className="flex items-center gap-1">
+                        <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
+                        <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{w.rating}</span>
+                      </div>
+                      <span className="text-[10px] font-semibold text-green-700 bg-green-50 dark:bg-green-900/30 dark:text-green-400 rounded-full px-2 py-0.5 border border-green-200 dark:border-green-800">
                         ✓ Verified
                       </span>
                     </div>
@@ -338,7 +319,7 @@ export default function Home() {
 
               {/* Carousel dots */}
               <div className="flex justify-center gap-1.5 mb-4">
-                {PREVIEW_WORKERS.map((_, i) => (
+                {carouselWorkers.map((_, i) => (
                   <button
                     key={i}
                     onClick={() => setCurrentWorker(i)}
