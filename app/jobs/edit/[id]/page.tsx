@@ -4,7 +4,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { ArrowLeft, Loader2, Save, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
-import { createClient } from '../../../utils/supabase/client';
+import { createClient } from '@/utils/supabase/client';
 
 export default function EditJobPage() {
   const router = useRouter();
