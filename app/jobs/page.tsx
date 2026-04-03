@@ -14,6 +14,25 @@ export default function MyJobsPage() {
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
   
+  const handleDeleteJob = async (jobId: string) => {
+    const confirm = window.confirm("Are you sure? This removes the post and all applications. This cannot be undone.");
+    if (!confirm) return;
+  
+    const supabase = createClient();
+    
+    // Delete applications first (to satisfy database rules)
+    await supabase.from('job_applications').delete().eq('job_id', jobId);
+  
+    // Delete the job
+    const { error } = await supabase.from('jobs').delete().eq('id', jobId);
+  
+    if (error) {
+      alert("Error: " + error.message);
+    } else {
+      alert("Job deleted successfully.");
+      window.location.reload(); 
+    }
+  };
   // Review Modal Logic
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState<any>(null);
@@ -121,15 +140,34 @@ if (posts) {
                     <h3 className="font-bold text-gray-900 dark:text-white text-lg">{post.title}</h3>
                     <span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase ${post.status === 'open' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{post.status}</span>
                 </div>
-                <div className="flex justify-between items-center border-t border-gray-50 dark:border-gray-800 pt-4 mt-4">
-                    <div className="flex items-center text-sm font-bold text-gray-700 dark:text-gray-300">
-                        <Users className="w-4 h-4 mr-2 text-gray-400" />
-                        {post.appCount || 0} Applicants
-                    </div>
+                
+                <div className="flex items-center text-sm font-bold text-gray-700 dark:text-gray-300 mt-2">
+                    <Users className="w-4 h-4 mr-2 text-gray-400" />
+                    {post.appCount || 0} Applicants
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3 border-t border-gray-50 dark:border-gray-800 pt-4 mt-4">
+                    {/* Primary Action: Review */}
+                    <Link href={`/jobs/manage/${post.id}`} className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-4 py-2 rounded-lg text-sm font-bold">
+                        Review Applications
+                    </Link>
+
+                    {/* Secondary Actions: Edit & Delete (Only if Open) */}
                     {post.status === 'open' && (
-                        <Link href={`/jobs/manage/${post.id}`} className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-4 py-2 rounded-lg text-sm font-bold">
-                            Review Applications
-                        </Link>
+                        <>
+                            <Link 
+                                href={`/jobs/edit/${post.id}`} 
+                                className="border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 px-4 py-2 rounded-lg text-sm font-bold hover:bg-gray-50 dark:hover:bg-slate-800 transition"
+                            >
+                                Edit
+                            </Link>
+                            <button 
+                                onClick={() => handleDeleteJob(post.id)}
+                                className="text-red-500 hover:text-red-700 text-sm font-bold transition px-2"
+                            >
+                                Delete
+                            </button>
+                        </>
                     )}
                 </div>
               </div>
