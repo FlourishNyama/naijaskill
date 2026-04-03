@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import { createClient } from '@/utils/supabase/client';
 
+export const dynamic = 'force-dynamic';
 export default function EditJobPage() {
   const router = useRouter();
   const params = useParams();
@@ -81,16 +82,16 @@ export default function EditJobPage() {
         budget: parseInt(budget),
         location,
         description,
-        updated_at: new Date().toISOString(),
       })
       .eq('id', jobId);
+
 
     if (updateError) {
       setError(updateError.message);
       setSaving(false);
     } else {
-      router.push('/jobs'); // Back to My Projects
-      router.refresh();
+        router.refresh(); // <--- Refresh first
+        router.push('/jobs'); // <--- Then navigate
     }
   };
 
