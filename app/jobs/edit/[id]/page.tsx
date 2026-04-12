@@ -85,13 +85,17 @@ export default function EditJobPage() {
       })
       .eq('id', jobId);
 
-
     if (updateError) {
       setError(updateError.message);
       setSaving(false);
     } else {
-        router.refresh(); // <--- Refresh first
-        router.push('/jobs'); // <--- Then navigate
+        // IMPORTANT: We must refresh the data before we leave the page
+        router.refresh(); 
+        
+        // Use a slight delay or just push to ensure the refresh signal is sent
+        setTimeout(() => {
+            router.push('/jobs');
+        }, 100);
     }
   };
 

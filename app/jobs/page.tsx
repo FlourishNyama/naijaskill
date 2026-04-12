@@ -6,7 +6,7 @@ import { ArrowLeft, Loader2, User, Users, Star } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { createClient } from '../../utils/supabase/client';
 import ReviewModal from '@/components/ReviewModal';
-
+export const dynamic = 'force-dynamic';
 export default function MyJobsPage() {
   const [activeTab, setActiveTab] = useState<'contracts' | 'posts'>('contracts');
   const [contracts, setContracts] = useState<any[]>([]);
