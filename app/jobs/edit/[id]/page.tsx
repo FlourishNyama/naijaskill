@@ -74,7 +74,8 @@ export default function EditJobPage() {
     setSaving(true);
     setError(null);
 
-    const { error: updateError } = await supabase
+    // .select() forces Supabase to return the row it just updated
+    const { data, error: updateError } = await supabase
       .from('jobs')
       .update({
         title,
@@ -83,22 +84,22 @@ export default function EditJobPage() {
         location,
         description,
       })
-      .eq('id', jobId);
+      .eq('id', jobId)
+      .select(); 
 
     if (updateError) {
-      setError(updateError.message);
+      alert("❌ Database Error: " + updateError.message);
+      setSaving(false);
+    } else if (!data || data.length === 0) {
+      // THE CATCH: If data is empty, Supabase silently blocked the update!
+      alert("🚨 SILENT FAILURE: Supabase blocked the update because of Row Level Security (RLS). You need to run the SQL command!");
       setSaving(false);
     } else {
-        // IMPORTANT: We must refresh the data before we leave the page
-        router.refresh(); 
-        
-        // Use a slight delay or just push to ensure the refresh signal is sent
-        setTimeout(() => {
-            router.push('/jobs');
-        }, 100);
+      alert("✅ SUCCESS: Database actually saved the new data!");
+      // This is the ultimate Cache Nuke. It forces the browser to do a hard reload.
+      window.location.href = '/jobs'; 
     }
   };
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center dark:bg-slate-950">
