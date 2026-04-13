@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { X, ShieldCheck, CreditCard, CheckCircle, Loader2 } from 'lucide-react';
 import { createClient } from '../utils/supabase/client';
 import { useToast } from './ToastProvider';
+import { notify } from '@/utils/notifyClient';
 
 // We now accept 'artisanId' as a prop
 export default function BookingModal({ isOpen, onClose, artisanId }: { isOpen: boolean; onClose: () => void; artisanId: string }) {
@@ -49,6 +50,15 @@ export default function BookingModal({ isOpen, onClose, artisanId }: { isOpen: b
         toast.error("Error: " + error.message);
         setLoading(false);
     } else {
+        // Notify artisan of the booking request (fire and forget)
+        const clientName = user.user_metadata?.full_name || "A client";
+        notify({
+          targetUserId: artisanId,
+          title: 'New Booking Request',
+          body: `${clientName} has sent you a booking request for ₦${total.toLocaleString()}. Funds are held safely in Escrow.`,
+          type: 'booking_request',
+          link: '/jobs',
+        });
         setStep(3); // Show Success Screen
         setLoading(false);
     }

@@ -7,6 +7,7 @@ import Navbar from '@/components/Navbar';
 import { createClient } from '../../utils/supabase/client';
 import ReviewModal from '@/components/ReviewModal';
 import { useToast } from '@/components/ToastProvider';
+import { notify } from '@/utils/notifyClient';
 export const dynamic = 'force-dynamic';
 export default function MyJobsPage() {
   const [activeTab, setActiveTab] = useState<'contracts' | 'posts'>('contracts');
@@ -79,12 +80,24 @@ if (posts) {
     fetchData();
   }, []);
 
-  const handleReleaseFunds = async (jobId: string, budget: number) => {
+  const handleReleaseFunds = async (jobId: string, budget: number, artisanId: string) => {
     if(!window.confirm(`Release ₦${budget.toLocaleString()} to artisan?`)) return;
     setProcessingId(jobId);
     const { error } = await supabase.rpc('release_funds', { job_id: jobId });
-    if (error) toast.error("Error: " + error.message);
-    else { toast.success("Funds Released!"); window.location.reload(); }
+    if (error) {
+      toast.error("Error: " + error.message);
+    } else {
+      // Notify artisan their payment is on the way (fire and forget)
+      notify({
+        targetUserId: artisanId,
+        title: '₦' + budget.toLocaleString() + ' released to your wallet! 💰',
+        body: `Your payment of ₦${budget.toLocaleString()} has been released by the client. Check your wallet.`,
+        type: 'payment_released',
+        link: '/wallet',
+      });
+      toast.success("Funds Released!");
+      window.location.reload();
+    }
     setProcessingId(null);
   };
 
@@ -123,7 +136,7 @@ if (posts) {
                 <p className="text-sm text-gray-500 mb-4">{job.job_description}</p>
                 
                 {job.status === 'accepted' || job.status === 'in_progress' ? (
-                   <button onClick={() => handleReleaseFunds(job.id, job.budget)} disabled={processingId === job.id} className="w-full bg-green-600 text-white py-2 rounded-lg text-sm font-bold">
+                   <button onClick={() => handleReleaseFunds(job.id, job.budget, job.artisan_id)} disabled={processingId === job.id} className="w-full bg-green-600 text-white py-2 rounded-lg text-sm font-bold">
                      {processingId === job.id ? <Loader2 className="w-4 h-4 animate-spin mx-auto"/> : "Release Funds"}
                    </button>
                 ) : job.status === 'completed' ? (

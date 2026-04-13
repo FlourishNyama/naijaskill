@@ -7,6 +7,7 @@ import { ArrowLeft, User, MapPin, CheckCircle, XCircle, Loader2 } from 'lucide-r
 import Navbar from '@/components/Navbar';
 import { createClient } from '../../../../utils/supabase/client';
 import { useToast } from '@/components/ToastProvider';
+import { notify } from '@/utils/notifyClient';
 
 export default function ManageJobPage() {
   const params = useParams();
@@ -79,6 +80,15 @@ export default function ManageJobPage() {
 
     // 3. Close the Job (Stop new applicants)
     await supabase.from('jobs').update({ status: 'closed' }).eq('id', jobId);
+
+    // 4. Notify artisan (fire and forget)
+    notify({
+      targetUserId: app.artisan_id,
+      title: "You've been hired! 🎉",
+      body: `Congratulations! You have been hired for "${job?.title}". The client will be in touch shortly.`,
+      type: 'hired',
+      link: '/jobs',
+    });
 
     toast.success("Hired! Redirecting to your contracts...");
     router.push('/jobs'); // Go to My Jobs -> Contracts tab

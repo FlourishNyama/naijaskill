@@ -6,6 +6,7 @@ import Script from "next/script";
 import { Providers } from "./providers";
 import Footer from '@/components/Footer';
 import { ToastProvider } from '@/components/ToastProvider';
+import { OneSignalProvider } from '@/components/OneSignalProvider';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -35,10 +36,16 @@ export default function RootLayout({
 
         <Providers>
           <ToastProvider>
+            <OneSignalProvider />
             {children}
             <Script
               src="https://korablobstorage.blob.core.windows.net/modal-bucket/korapay-collections.min.js"
               strategy="lazyOnload"
+            />
+            <Script
+              src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"
+              strategy="lazyOnload"
+              defer
             />
             <Footer />
           </ToastProvider>

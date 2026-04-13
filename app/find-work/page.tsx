@@ -5,6 +5,7 @@ import { Search, MapPin, Calendar, Clock, DollarSign, Briefcase, Loader2, CheckC
 import Navbar from '@/components/Navbar';
 import { createClient } from '../../utils/supabase/client';
 import { useToast } from '@/components/ToastProvider';
+import { notify } from '@/utils/notifyClient';
 
 export default function FindWorkPage() {
   const [jobs, setJobs] = useState<any[]>([]);
@@ -74,6 +75,20 @@ export default function FindWorkPage() {
         const newApplied = new Set(appliedJobs);
         newApplied.add(jobId);
         setAppliedJobs(newApplied);
+
+        // 3. Notify the client who posted the job (fire and forget)
+        const job = jobs.find(j => j.id === jobId);
+        if (job?.client_id) {
+          const artisanName = user.user_metadata?.full_name || 'An artisan';
+          notify({
+            targetUserId: job.client_id,
+            title: 'New Application Received',
+            body: `${artisanName} applied for your job: "${job.title}". Review their profile now.`,
+            type: 'new_application',
+            link: `/jobs/manage/${jobId}`,
+          });
+        }
+
         toast.success("Application sent! The client will contact you if interested.");
     }
     setApplying(null);

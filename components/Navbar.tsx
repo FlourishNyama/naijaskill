@@ -6,6 +6,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { Menu, X, LayoutDashboard, Home, LogOut, Settings, Search, ChevronDown, Briefcase, Repeat, Loader2 } from 'lucide-react';
 import { createClient } from '../utils/supabase/client';
 import { useToast } from './ToastProvider';
+import NotificationBell from './NotificationBell';
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -126,14 +127,17 @@ export default function Navbar() {
             </>
           ) : (
             /* LOGGED IN VIEW */
-            <div className="flex items-center gap-4">
-              
+            <div className="flex items-center gap-2">
+
               {/* Desktop: Show Browse Link ONLY if NOT on browse page */}
               {pathname !== browseLink && (
                 <Link href={browseLink} className="hidden md:block text-gray-600 dark:text-gray-300 hover:text-green-600 font-medium mr-2">
                   {browseLabel}
                 </Link>
               )}
+
+              {/* Notification Bell */}
+              <NotificationBell />
 
               {/* PROFILE DROPDOWN */}
               <div className="relative">
