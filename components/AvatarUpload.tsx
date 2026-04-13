@@ -3,9 +3,11 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Camera, Loader2 } from 'lucide-react';
 import { createClient } from '../utils/supabase/client';
+import { useToast } from './ToastProvider';
 
 export default function AvatarUpload({ uid, url, onUpload }: { uid: string, url: string | null, onUpload: (url: string) => void }) {
   const supabase = createClient();
+  const { toast } = useToast();
   const [avatarUrl, setAvatarUrl] = useState<string | null>(url);
   const [uploading, setUploading] = useState(false);
 
@@ -54,10 +56,10 @@ export default function AvatarUpload({ uid, url, onUpload }: { uid: string, url:
       // 5. Update UI
       setAvatarUrl(publicUrl);
       onUpload(publicUrl);
-      alert('Avatar updated successfully!');
+      toast.success('Avatar updated successfully!');
 
     } catch (error: any) {
-      alert('Error uploading avatar: ' + error.message);
+      toast.error('Error uploading avatar: ' + error.message);
     } finally {
       setUploading(false);
     }

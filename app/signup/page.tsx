@@ -5,10 +5,12 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation'; // To move pages
 import { ArrowLeft, User, Briefcase, Mail, Lock, Phone, CheckCircle, Loader2 } from 'lucide-react';
-import { createClient } from '../../utils/supabase/client'; // Your connection tool
+import { createClient } from '../../utils/supabase/client';
+import { useToast } from '@/components/ToastProvider';
 
 export default function SignUpPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [userType, setUserType] = useState<'client' | 'artisan'>('client');
   
   // 1. STATE VARIABLES (To hold the typed data)
@@ -23,7 +25,7 @@ export default function SignUpPage() {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault(); // Stop page from refreshing
     if (password.length < 6) {
-      alert("Password must be at least 6 characters long!");
+      toast.warning("Password must be at least 6 characters long!");
       setLoading(false);
       return;
     }
@@ -46,11 +48,10 @@ export default function SignUpPage() {
     });
 
     if (error) {
-      alert("❌ Error: " + error.message);
+      toast.error(error.message);
       setLoading(false);
     } else {
-      // Success!
-      alert("✅ Account Created! Please check your email to verify.");
+      toast.success("Account Created! Please check your email to verify.");
       // Usually, we redirect to a "Verify Email" page or Login
       router.push('/login');
     }

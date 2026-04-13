@@ -3,8 +3,9 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import Script from "next/script";
 // IMPORT THE ENGINE
-import { Providers } from "./providers"; 
+import { Providers } from "./providers";
 import Footer from '@/components/Footer';
+import { ToastProvider } from '@/components/ToastProvider';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -33,12 +34,14 @@ export default function RootLayout({
         {/* TURN THE ENGINE ON */}
 
         <Providers>
-          {children}
-          <Script 
-          src="https://korablobstorage.blob.core.windows.net/modal-bucket/korapay-collections.min.js" 
-          strategy="lazyOnload" 
-        />
-          <Footer />
+          <ToastProvider>
+            {children}
+            <Script
+              src="https://korablobstorage.blob.core.windows.net/modal-bucket/korapay-collections.min.js"
+              strategy="lazyOnload"
+            />
+            <Footer />
+          </ToastProvider>
         </Providers>
       </body>
     </html>

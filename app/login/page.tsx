@@ -5,11 +5,13 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Mail, Lock, Loader2 } from 'lucide-react';
-import { createClient } from '../../utils/supabase/client'; // Your phone line
+import { createClient } from '../../utils/supabase/client';
+import { useToast } from '@/components/ToastProvider';
 
 export default function LoginPage() {
   const supabase = createClient();
   const router = useRouter();
+  const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -28,7 +30,7 @@ export default function LoginPage() {
     });
   
     if (error) {
-      alert(error.message);
+      toast.error(error.message);
       setLoading(false);
     } else {
       router.push('/dashboard'); // Or wherever your home page is

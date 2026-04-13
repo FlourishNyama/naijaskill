@@ -6,6 +6,7 @@ import { ArrowLeft, Wallet, ArrowDownLeft, Loader2, CreditCard, Building2 } from
 import Navbar from '@/components/Navbar';
 import { createClient } from '../../utils/supabase/client';
 import dynamic from 'next/dynamic';
+import { useToast } from '@/components/ToastProvider';
 
 // Import Paystack as Backup
 const PaystackButton = dynamic(
@@ -30,6 +31,7 @@ export default function WalletPage() {
   const [isWithdrawing, setIsWithdrawing] = useState(false);
 
   const supabase = createClient();
+  const { toast } = useToast();
 
   useEffect(() => {
     const getData = async () => {
@@ -58,14 +60,14 @@ export default function WalletPage() {
   const handleKorapayPayment = () => {
     // Check if script loaded
     if (!(window as any).Korapay) {
-        alert("System loading... please wait 2 seconds.");
+        toast.info("System loading... please wait a moment.");
         return;
     }
 
     // Check for Keys
     const key = process.env.NEXT_PUBLIC_KORAPAY_PUBLIC_KEY;
     if (!key) {
-        alert("Error: Korapay Public Key is missing in .env.local file!");
+        toast.error("Korapay Public Key is missing in .env.local file!");
         return;
     }
 
@@ -81,12 +83,12 @@ export default function WalletPage() {
       onSuccess: async function (data: any) {
         const newBalance = balance + amountToFund;
         await supabase.from('wallets').update({ balance: newBalance }).eq('user_id', user.id);
-        
+
         await supabase.from('transactions').insert({
           user_id: user.id, type: 'deposit', amount: amountToFund,
           description: 'Funded via Bank Transfer (Korapay)', reference: data.reference, status: 'success'
         });
-        alert("Payment Successful! Balance Updated.");
+        toast.success("Payment Successful! Balance Updated.");
         window.location.reload();
       },
       onClose: function () { console.log("Closed"); }
@@ -97,10 +99,10 @@ export default function WalletPage() {
   const handleWithdraw = async () => {
     const amount = Number(withdrawAmount);
 
-    if (!amount || amount <= 0) return alert("Enter valid amount.");
-    if (amount > balance) return alert("Insufficient funds.");
-    if (!bankName || !accountNumber) return alert("Please enter your Bank Name and Account Number.");
-    if (accountNumber.length < 10) return alert("Account number seems too short.");
+    if (!amount || amount <= 0) { toast.warning("Enter a valid amount."); return; }
+    if (amount > balance) { toast.error("Insufficient funds."); return; }
+    if (!bankName || !accountNumber) { toast.warning("Please enter your Bank Name and Account Number."); return; }
+    if (accountNumber.length < 10) { toast.warning("Account number seems too short."); return; }
 
     if (!window.confirm(`Withdraw ₦${amount.toLocaleString()} to ${bankName} (${accountNumber})?`)) return;
 
@@ -124,10 +126,10 @@ export default function WalletPage() {
         setWithdrawAmount('');
         setBankName('');
         setAccountNumber('');
-        alert("Withdrawal Request Submitted! Admin will process it shortly.");
-        window.location.reload(); 
+        toast.success("Withdrawal Request Submitted! Admin will process it shortly.");
+        window.location.reload();
     } else {
-        alert("Error: " + error.message);
+        toast.error("Error: " + error.message);
     }
     setIsWithdrawing(false);
   };
@@ -147,7 +149,7 @@ export default function WalletPage() {
         });
         window.location.reload();
     },
-    onClose: () => alert("Cancelled"),
+    onClose: () => {},
   };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center dark:bg-slate-950"><Loader2 className="animate-spin text-green-600" /></div>;

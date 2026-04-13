@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { Loader2, User, MapPin, Save, Camera } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { createClient } from '../../utils/supabase/client';
+import { useToast } from '@/components/ToastProvider';
 import Image from 'next/image';
 
 export default function ClientSettingsPage() {
@@ -21,6 +22,7 @@ export default function ClientSettingsPage() {
   });
 
   const supabase = createClient();
+  const { toast } = useToast();
 
   useEffect(() => {
     const getData = async () => {
@@ -55,9 +57,9 @@ export default function ClientSettingsPage() {
       if (uploadError) throw uploadError;
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
       setFormData(prev => ({ ...prev, avatar_url: publicUrl }));
-      alert("Image uploaded!");
+      toast.success("Image uploaded!");
     } catch (error: any) {
-      alert("Error uploading image: " + error.message);
+      toast.error("Error uploading image: " + error.message);
     } finally {
       setUploading(false);
     }
@@ -83,9 +85,9 @@ export default function ClientSettingsPage() {
     setSaving(false);
 
     if (error) {
-      alert("Error saving: " + error.message);
+      toast.error("Error saving: " + error.message);
     } else {
-      alert("Profile updated successfully!");
+      toast.success("Profile updated successfully!");
       router.push('/dashboard'); // Redirect to Client Dashboard
       router.refresh();
     }

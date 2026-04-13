@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
 import { Menu, X, LayoutDashboard, Home, LogOut, Settings, Search, ChevronDown, Briefcase, Repeat, Loader2 } from 'lucide-react';
 import { createClient } from '../utils/supabase/client';
+import { useToast } from './ToastProvider';
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -15,8 +16,9 @@ export default function Navbar() {
   const [switching, setSwitching] = useState(false);
   
   const router = useRouter();
-  const pathname = usePathname(); 
+  const pathname = usePathname();
   const supabase = createClient();
+  const { toast } = useToast();
 
   useEffect(() => {
     const checkUser = async () => {
@@ -71,7 +73,7 @@ export default function Navbar() {
     } else {
         // Switch to Artisan (Check if profile exists)
         if (!userProfile?.job_title) {
-            alert("To become an Artisan, please complete your professional profile first.");
+            toast.info("Please complete your professional profile to switch to Artisan mode.");
             router.push('/artisan-settings');
         } else {
             await supabase.from('profiles').update({ role: 'artisan' }).eq('id', user.id);

@@ -4,9 +4,11 @@ import { useRouter } from 'next/navigation';
 import { Loader2, ArrowLeft, MapPin, DollarSign, FileText, Briefcase } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { createClient } from '../../utils/supabase/client';
+import { useToast } from '@/components/ToastProvider';
 
 export default function PostJobPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
@@ -23,7 +25,7 @@ export default function PostJobPage() {
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-        alert("Please log in to post a job.");
+        toast.warning("Please log in to post a job.");
         router.push('/login');
         return;
     }
@@ -41,10 +43,10 @@ export default function PostJobPage() {
     setLoading(false);
 
     if (error) {
-        alert("Error posting job: " + error.message);
+        toast.error("Error posting job: " + error.message);
     } else {
-        alert("Job Posted Successfully!");
-        router.push('/jobs'); 
+        toast.success("Job Posted Successfully!");
+        router.push('/jobs');
     }
   };
 

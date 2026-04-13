@@ -6,6 +6,7 @@ import { ArrowLeft, Loader2, User, Users, Star } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { createClient } from '../../utils/supabase/client';
 import ReviewModal from '@/components/ReviewModal';
+import { useToast } from '@/components/ToastProvider';
 export const dynamic = 'force-dynamic';
 export default function MyJobsPage() {
   const [activeTab, setActiveTab] = useState<'contracts' | 'posts'>('contracts');
@@ -13,6 +14,7 @@ export default function MyJobsPage() {
   const [postedJobs, setPostedJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const { toast } = useToast();
   
   const handleDeleteJob = async (jobId: string) => {
     const confirm = window.confirm("Are you sure? This removes the post and all applications. This cannot be undone.");
@@ -27,10 +29,10 @@ export default function MyJobsPage() {
     const { error } = await supabase.from('jobs').delete().eq('id', jobId);
   
     if (error) {
-      alert("Error: " + error.message);
+      toast.error("Error: " + error.message);
     } else {
-      alert("Job deleted successfully.");
-      window.location.reload(); 
+      toast.success("Job deleted successfully.");
+      window.location.reload();
     }
   };
   // Review Modal Logic
@@ -81,8 +83,8 @@ if (posts) {
     if(!window.confirm(`Release ₦${budget.toLocaleString()} to artisan?`)) return;
     setProcessingId(jobId);
     const { error } = await supabase.rpc('release_funds', { job_id: jobId });
-    if (error) alert("Error: " + error.message);
-    else { alert("Funds Released!"); window.location.reload(); }
+    if (error) toast.error("Error: " + error.message);
+    else { toast.success("Funds Released!"); window.location.reload(); }
     setProcessingId(null);
   };
 

@@ -2,17 +2,19 @@
 import { useState } from 'react';
 import { Star, Loader2, X } from 'lucide-react';
 import { createClient } from '../utils/supabase/client';
+import { useToast } from './ToastProvider';
 
 export default function ReviewModal({ isOpen, onClose, jobId, artisanId, clientName }: any) {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const supabase = createClient();
+  const { toast } = useToast();
 
   if (!isOpen) return null;
 
   const handleSubmit = async () => {
-    if (rating === 0) return alert("Please select a star rating.");
+    if (rating === 0) { toast.warning("Please select a star rating."); return; }
     setSubmitting(true);
 
     const { data: { user } } = await supabase.auth.getUser();
@@ -28,10 +30,10 @@ export default function ReviewModal({ isOpen, onClose, jobId, artisanId, clientN
 
     setSubmitting(false);
     if (!error) {
-      alert("Review submitted!");
+      toast.success("Review submitted!");
       onClose();
     } else {
-      alert("Error: " + error.message);
+      toast.error("Error: " + error.message);
     }
   };
 

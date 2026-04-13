@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Search, MapPin, Calendar, Clock, DollarSign, Briefcase, Loader2, CheckCircle } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { createClient } from '../../utils/supabase/client';
+import { useToast } from '@/components/ToastProvider';
 
 export default function FindWorkPage() {
   const [jobs, setJobs] = useState<any[]>([]);
@@ -15,6 +16,7 @@ export default function FindWorkPage() {
   const [dynamicCategories, setDynamicCategories] = useState<string[]>([]);
 
   const supabase = createClient();
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -51,7 +53,7 @@ export default function FindWorkPage() {
 
   const handleApply = async (jobId: string) => {
     if (!user) {
-        alert("Please log in to apply.");
+        toast.warning("Please log in to apply.");
         return;
     }
     setApplying(jobId);
@@ -66,13 +68,13 @@ export default function FindWorkPage() {
         });
 
     if (error) {
-        alert("Error applying: " + error.message);
+        toast.error("Error applying: " + error.message);
     } else {
         // 2. Update UI
         const newApplied = new Set(appliedJobs);
         newApplied.add(jobId);
         setAppliedJobs(newApplied);
-        alert("Application sent! The client will contact you if interested.");
+        toast.success("Application sent! The client will contact you if interested.");
     }
     setApplying(null);
   };

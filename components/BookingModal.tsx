@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { X, ShieldCheck, CreditCard, CheckCircle, Loader2 } from 'lucide-react';
 import { createClient } from '../utils/supabase/client';
+import { useToast } from './ToastProvider';
 
 // We now accept 'artisanId' as a prop
 export default function BookingModal({ isOpen, onClose, artisanId }: { isOpen: boolean; onClose: () => void; artisanId: string }) {
@@ -11,6 +12,7 @@ export default function BookingModal({ isOpen, onClose, artisanId }: { isOpen: b
   const [budget, setBudget] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { toast } = useToast();
 
   if (!isOpen) return null;
 
@@ -26,7 +28,7 @@ export default function BookingModal({ isOpen, onClose, artisanId }: { isOpen: b
     // 1. Get Current User (Client)
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-        alert("Please log in to book.");
+        toast.warning("Please log in to book.");
         router.push('/login');
         return;
     }
@@ -44,7 +46,7 @@ export default function BookingModal({ isOpen, onClose, artisanId }: { isOpen: b
     });
 
     if (error) {
-        alert("Error: " + error.message);
+        toast.error("Error: " + error.message);
         setLoading(false);
     } else {
         setStep(3); // Show Success Screen

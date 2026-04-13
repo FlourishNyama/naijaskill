@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { Loader2, User, MapPin, Briefcase, DollarSign, Save, Camera } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { createClient } from '../../utils/supabase/client';
+import { useToast } from '@/components/ToastProvider';
 
 export default function ArtisanSettingsPage() {
   const router = useRouter();
@@ -23,6 +24,7 @@ export default function ArtisanSettingsPage() {
   });
 
   const supabase = createClient();
+  const { toast } = useToast();
 
   useEffect(() => {
     const getData = async () => {
@@ -63,9 +65,9 @@ export default function ArtisanSettingsPage() {
       if (uploadError) throw uploadError;
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
       setFormData(prev => ({ ...prev, avatar_url: publicUrl }));
-      alert("Image uploaded!");
+      toast.success("Image uploaded!");
     } catch (error: any) {
-      alert("Error uploading image: " + error.message);
+      toast.error("Error uploading image: " + error.message);
     } finally {
       setUploading(false);
     }
@@ -74,7 +76,7 @@ export default function ArtisanSettingsPage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.job_title) {
-        alert("As an Artisan, you must have a Job Title.");
+        toast.warning("As an Artisan, you must have a Job Title.");
         return;
     }
     setSaving(true);
@@ -100,9 +102,9 @@ export default function ArtisanSettingsPage() {
     setSaving(false);
 
     if (error) {
-      alert("Error saving profile: " + error.message);
+      toast.error("Error saving profile: " + error.message);
     } else {
-      alert("Profile updated!");
+      toast.success("Profile updated!");
       router.push('/artisan-dashboard');
       router.refresh();
     }

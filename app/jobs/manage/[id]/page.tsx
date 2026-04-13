@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { ArrowLeft, User, MapPin, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { createClient } from '../../../../utils/supabase/client';
+import { useToast } from '@/components/ToastProvider';
 
 export default function ManageJobPage() {
   const params = useParams();
@@ -18,6 +19,7 @@ export default function ManageJobPage() {
   const [processing, setProcessing] = useState<string | null>(null);
 
   const supabase = createClient();
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -67,18 +69,18 @@ export default function ManageJobPage() {
     });
 
     if (error) {
-        alert("Error hiring: " + error.message);
+        toast.error("Error hiring: " + error.message);
         setProcessing(null);
         return;
     }
 
     // 2. Mark App as Accepted
     await supabase.from('job_applications').update({ status: 'accepted' }).eq('id', app.id);
-    
+
     // 3. Close the Job (Stop new applicants)
     await supabase.from('jobs').update({ status: 'closed' }).eq('id', jobId);
 
-    alert("Hired! Redirecting to your contracts...");
+    toast.success("Hired! Redirecting to your contracts...");
     router.push('/jobs'); // Go to My Jobs -> Contracts tab
   };
 
