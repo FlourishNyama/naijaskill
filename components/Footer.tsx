@@ -42,7 +42,7 @@ export default function Footer() {
             <li>Abuja, Nigeria</li>
             <li>+234 806 977 0191</li>
             <li>+234 808 505 4532</li>
-            <li>customercare@elitejobinternational.com</li>
+            <li>admin@elitejobinternational.com</li>
           </ul>
         </div>
 
