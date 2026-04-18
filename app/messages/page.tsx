@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { Send, Search, User, MoreVertical, ArrowLeft, Loader2 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { createClient } from '../../utils/supabase/client';
+import { notify } from '@/utils/notifyClient';
 
 // ---------------------------------------------------------
 // PART 1: The Main Logic (Renamed to MessagesContent)
@@ -108,6 +109,17 @@ function MessagesContent() {
       receiver_id: selectedContact.id,
       content: newMessage
     });
+
+    // Notify the recipient (fire and forget)
+    const senderName = user.user_metadata?.full_name || 'Someone';
+    notify({
+      targetUserId: selectedContact.id,
+      title: `New message from ${senderName}`,
+      body: newMessage.length > 60 ? newMessage.substring(0, 60) + '...' : newMessage,
+      type: 'message',
+      link: `/messages?chatWith=${user.id}`,
+    });
+
     setNewMessage('');
   };
 

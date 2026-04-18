@@ -443,7 +443,7 @@ export default function Home() {
               EJ
             </div>
             <blockquote className="text-white/68 text-base italic leading-relaxed border-l-2 border-[#C9973A] pl-4 text-left">
-              &ldquo;I was scammed by a plumber who collected ₦80,000 and never returned. I built EliteJob so no one in Nigeria ever has to feel that helpless again.&rdquo;
+              &ldquo; We hit somebody's car because the brakes we just fixed for the fourth time in two months had failed again. I built EliteJob so no one in Nigeria ever has to feel that frustrated again.&rdquo;
             </blockquote>
             <p className="text-white/35 text-xs">— Founder, EliteJob International · Abuja</p>
             <div className="flex flex-wrap gap-3 justify-center text-xs text-white/40">
