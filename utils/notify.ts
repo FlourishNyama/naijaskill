@@ -90,7 +90,6 @@ async function sendPush(targetUserId: string, title: string, body: string, link:
       include_aliases: { external_id: [targetUserId] },
       headings: { en: title },
       contents: { en: body },
-      url: link,
       web_url: link,
     }),
   });
