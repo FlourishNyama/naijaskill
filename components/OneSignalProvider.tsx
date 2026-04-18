@@ -2,11 +2,6 @@
 import { useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 
-/**
- * Initialises the OneSignal Web SDK and links the subscription to the
- * current Supabase user's ID so we can target them server-side.
- * Renders nothing — drop it anywhere inside the client tree.
- */
 export function OneSignalProvider() {
   useEffect(() => {
     const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
@@ -17,18 +12,28 @@ export function OneSignalProvider() {
       try {
         await OneSignal.init({
           appId,
-          notifyButton: { enable: false }, // we use our own bell UI
-          allowLocalhostAsSecureOrigin: true, // allows testing on localhost
+          notifyButton: { enable: false },
+          allowLocalhostAsSecureOrigin: true,
         });
 
-        // Link this browser subscription to the logged-in Supabase user
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          await OneSignal.login(user.id); // sets external_id = supabase user ID
+        if (!user) return;
+
+        await OneSignal.login(user.id);
+
+        // Prompt for push every 3rd login if not yet granted
+        const key = `os_logins_${user.id}`;
+        const count = parseInt(localStorage.getItem(key) || '0') + 1;
+        localStorage.setItem(key, String(count));
+
+        const permission = OneSignal.Notifications.permissionNative;
+        if (permission !== 'granted' && count % 3 === 0) {
+          setTimeout(() => {
+            OneSignal.Slidedown.promptPush();
+          }, 3000);
         }
       } catch (err) {
-        // OneSignal init errors should never crash the app
         console.error('[OneSignal] init error:', err);
       }
     });
