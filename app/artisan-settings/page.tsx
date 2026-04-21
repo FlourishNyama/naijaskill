@@ -2,10 +2,11 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Loader2, User, MapPin, Briefcase, DollarSign, Save, Camera } from 'lucide-react';
+import { Loader2, User, MapPin, Briefcase, DollarSign, Save, Camera, ShieldCheck, Clock, X } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { createClient } from '../../utils/supabase/client';
 import { useToast } from '@/components/ToastProvider';
+import RecommenderSearch from '@/components/RecommenderSearch';
 
 export default function ArtisanSettingsPage() {
   const router = useRouter();
@@ -25,6 +26,9 @@ export default function ArtisanSettingsPage() {
 
   const supabase = createClient();
   const { toast } = useToast();
+
+  interface Recommender { id: string; name: string; status: string; }
+  const [recommenders, setRecommenders] = useState<Recommender[]>([]);
 
   useEffect(() => {
     const getData = async () => {
@@ -48,10 +52,55 @@ export default function ArtisanSettingsPage() {
           avatar_url: profile.avatar_url || ''
         });
       }
+
+      // Load existing recommendation requests
+      const { data: recs } = await supabase
+        .from('recommendations')
+        .select('id, recommender_id, status')
+        .eq('artisan_id', user.id);
+
+      if (recs && recs.length > 0) {
+        const ids = recs.map(r => r.recommender_id);
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, full_name')
+          .in('id', ids);
+        setRecommenders(recs.map(r => ({
+          id: r.recommender_id,
+          name: profiles?.find(p => p.id === r.recommender_id)?.full_name || 'Unknown',
+          status: r.status,
+        })));
+      }
+
       setLoading(false);
     };
     getData();
   }, [router]);
+
+  const addRecommender = async (client: { id: string; full_name: string }) => {
+    if (!user) return;
+    const { error } = await supabase.from('recommendations').insert({
+      artisan_id: user.id,
+      recommender_id: client.id,
+      status: 'pending',
+    });
+    if (error) {
+      toast.error('Could not add recommender.');
+      return;
+    }
+    setRecommenders(prev => [...prev, { id: client.id, name: client.full_name, status: 'pending' }]);
+    toast.success(`Request sent to ${client.full_name}!`);
+  };
+
+  const removeRecommender = async (clientId: string) => {
+    if (!user) return;
+    await supabase.from('recommendations')
+      .delete()
+      .eq('artisan_id', user.id)
+      .eq('recommender_id', clientId)
+      .eq('status', 'pending');
+    setRecommenders(prev => prev.filter(r => r.id !== clientId));
+  };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     try {
@@ -195,6 +244,54 @@ export default function ArtisanSettingsPage() {
             </button>
 
           </form>
+        </div>
+
+        {/* RECOMMENDERS SECTION — outside the save form so it saves instantly */}
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 mt-4">
+          <div className="flex items-center gap-2 mb-1">
+            <ShieldCheck className="w-5 h-5 text-green-600" />
+            <h2 className="text-base font-bold text-gray-900 dark:text-white">Verification by Recommendation</h2>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+            Add clients who can vouch for your work. When they confirm, your profile gets a verified badge and moves to the top of search results.
+          </p>
+
+          <RecommenderSearch
+            onSelect={addRecommender}
+            excluded={recommenders.map(r => r.id)}
+          />
+
+          {recommenders.length > 0 && (
+            <div className="mt-4 space-y-2">
+              {recommenders.map(r => (
+                <div key={r.id} className="flex items-center justify-between bg-gray-50 dark:bg-slate-800 rounded-xl px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    {r.status === 'confirmed' ? (
+                      <ShieldCheck className="w-4 h-4 text-green-600 shrink-0" />
+                    ) : (
+                      <Clock className="w-4 h-4 text-orange-400 shrink-0" />
+                    )}
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{r.name}</p>
+                      <p className={`text-xs font-medium ${r.status === 'confirmed' ? 'text-green-600' : 'text-orange-400'}`}>
+                        {r.status === 'confirmed' ? 'Confirmed ✓' : 'Waiting for response...'}
+                      </p>
+                    </div>
+                  </div>
+                  {r.status === 'pending' && (
+                    <button
+                      onClick={() => removeRecommender(r.id)}
+                      className="text-gray-400 hover:text-red-500 transition"
+                      title="Cancel request"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
         </div>
       </main>
     </div>

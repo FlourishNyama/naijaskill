@@ -7,6 +7,7 @@ import { Providers } from "./providers";
 import Footer from '@/components/Footer';
 import { ToastProvider } from '@/components/ToastProvider';
 import { OneSignalProvider } from '@/components/OneSignalProvider';
+import RecommendationPrompt from '@/components/RecommendationPrompt';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -37,6 +38,7 @@ export default function RootLayout({
         <Providers>
           <ToastProvider>
             <OneSignalProvider />
+            <RecommendationPrompt />
             {children}
             <Script
               src="https://korablobstorage.blob.core.windows.net/modal-bucket/korapay-collections.min.js"

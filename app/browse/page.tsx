@@ -44,14 +44,20 @@ function BrowseContent() {
     fetchArtisans();
   }, [category]);
 
-  const filteredArtisans = artisans.filter((artisan) => {
-    if (!searchTerm) return true;
-    const nameMatch = artisan.full_name?.toLowerCase().includes(searchTerm.toLowerCase());
-    const jobMatch = artisan.job_title?.toLowerCase().includes(searchTerm.toLowerCase());
-    return nameMatch || jobMatch;
-  });
+  const filteredArtisans = artisans
+    .filter((artisan) => {
+      if (!searchTerm) return true;
+      const nameMatch = artisan.full_name?.toLowerCase().includes(searchTerm.toLowerCase());
+      const jobMatch = artisan.job_title?.toLowerCase().includes(searchTerm.toLowerCase());
+      return nameMatch || jobMatch;
+    })
+    .sort((a, b) => {
+      // Verified first, then by hourly_rate as proxy for demand (or add a rating column later)
+      if (a.is_verified && !b.is_verified) return -1;
+      if (!a.is_verified && b.is_verified) return 1;
+      return (b.hourly_rate || 0) - (a.hourly_rate || 0);
+    });
 
-  const CATEGORIES = ["All", "Plumber", "Electrician", "Photographer", "Painter"];
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-950 pb-20 transition-colors duration-300">
@@ -105,9 +111,11 @@ function BrowseContent() {
                         {artisan.full_name?.substring(0,1) || "A"}
                       </div>
                   )}
-                  <div className="absolute top-2 right-2 bg-white/90 backdrop-blur px-2 py-1 rounded-full flex items-center text-[10px] font-bold text-green-700 shadow-sm">
-                    <ShieldCheck className="w-3 h-3 mr-1" /> Verified
-                  </div>
+                  {artisan.is_verified && (
+                    <div className="absolute top-2 right-2 bg-white/90 backdrop-blur px-2 py-1 rounded-full flex items-center text-[10px] font-bold text-green-700 shadow-sm">
+                      <ShieldCheck className="w-3 h-3 mr-1" /> Verified
+                    </div>
+                  )}
                 </div>
                 <div className="p-4">
                   <h3 className="font-bold text-gray-900 dark:text-white truncate">{artisan.full_name || "Artisan"}</h3>
