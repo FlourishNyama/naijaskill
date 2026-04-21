@@ -62,36 +62,55 @@ export default function ManageJobPage() {
   }, [jobId]);
 
   const handleHire = async (app: any) => {
-    const confirm = window.confirm(`Hire ${app.profile?.full_name || 'this artisan'}? This creates a contract.`);
+    const clientFee = Math.round(job.budget * 0.025);
+    const totalCharge = job.budget + clientFee;
+
+    const confirm = window.confirm(
+      `Hire ${app.profile?.full_name || 'this artisan'}?\n\n` +
+      `Job budget: ₦${job.budget.toLocaleString()}\n` +
+      `Your platform fee (2.5%): ₦${clientFee.toLocaleString()}\n` +
+      `Total deducted from wallet: ₦${totalCharge.toLocaleString()}\n\n` +
+      `This will be held in Escrow until you release it.`
+    );
     if (!confirm) return;
     setProcessing(app.id);
 
-    // 1. Create the Contract (Booking)
-    const { error } = await supabase.from('bookings').insert({
-        client_id: job.client_id,
-        client_name: job.client_name,
-        artisan_id: app.artisan_id,
-        service_type: job.title,
-        job_description: job.description,
-        location: job.location,
+    const { data: { session } } = await supabase.auth.getSession();
+
+    const res = await fetch('/api/create-contract', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session!.access_token}`,
+      },
+      body: JSON.stringify({
+        artisanId: app.artisan_id,
+        description: job.description,
         budget: job.budget,
-        date: new Date().toISOString().split('T')[0],
-        status: 'accepted' // Auto-accept because client initiated it
+        location: job.location,
+        jobId,
+        applicationId: app.id,
+        serviceType: job.title,
+      }),
     });
 
-    if (error) {
-        toast.error("Error hiring: " + error.message);
+    const data = await res.json();
+
+    if (res.status === 402) {
+      toast.error(
+        `Insufficient wallet balance. You need ₦${data.shortfall.toLocaleString()} more to hire this artisan. Please top up your wallet first.`
+      );
+      setProcessing(null);
+      return;
+    }
+
+    if (!res.ok) {
+        toast.error("Error hiring: " + (data.error || 'Unknown error'));
         setProcessing(null);
         return;
     }
 
-    // 2. Mark App as Accepted
-    await supabase.from('job_applications').update({ status: 'accepted' }).eq('id', app.id);
-
-    // 3. Close the Job (Stop new applicants)
-    await supabase.from('jobs').update({ status: 'closed' }).eq('id', jobId);
-
-    // 4. Notify artisan (fire and forget)
+    // Notify artisan (fire and forget)
     notify({
       targetUserId: app.artisan_id,
       title: "You've been hired! 🎉",

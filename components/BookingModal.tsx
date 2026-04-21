@@ -1,77 +1,87 @@
 "use client";
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { X, ShieldCheck, CreditCard, CheckCircle, Loader2 } from 'lucide-react';
+import { X, ShieldCheck, CreditCard, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
 import { createClient } from '../utils/supabase/client';
 import { useToast } from './ToastProvider';
 import { notify } from '@/utils/notifyClient';
 
-// We now accept 'artisanId' as a prop
 export default function BookingModal({ isOpen, onClose, artisanId }: { isOpen: boolean; onClose: () => void; artisanId: string }) {
   const [step, setStep] = useState(1);
   const [description, setDescription] = useState("");
   const [budget, setBudget] = useState("");
   const [loading, setLoading] = useState(false);
+  const [fundError, setFundError] = useState<{ shortfall: number } | null>(null);
   const router = useRouter();
   const { toast } = useToast();
 
   if (!isOpen) return null;
 
-  // Calculate fees
-  const amount = parseFloat(budget) || 0;
-  const serviceFee = Math.round(amount * 0.05); // 5% fee
-  const total = amount + serviceFee;
+  const amount     = parseFloat(budget) || 0;
+  const clientFee  = Math.round(amount * 0.025);
+  const artisanFee = Math.round(amount * 0.025);
+  const totalCharge = amount + clientFee;   // what leaves client wallet
 
   const handleBooking = async () => {
     setLoading(true);
+    setFundError(null);
+
     const supabase = createClient();
-
-    // 1. Get Current User (Client)
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-        toast.warning("Please log in to book.");
-        router.push('/login');
-        return;
-    }
+    if (!user) { toast.warning("Please log in to book."); router.push('/login'); return; }
 
-    // 2. Insert Booking into DB
-    const { error } = await supabase.from('bookings').insert({
-        client_id: user.id,
-        artisan_id: artisanId,
-        client_name: user.user_metadata.full_name || "Client",
-        job_description: description,
+    const { data: { session } } = await supabase.auth.getSession();
+
+    const res = await fetch('/api/create-contract', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session!.access_token}`,
+      },
+      body: JSON.stringify({
+        artisanId,
+        description,
         budget: amount,
-        location: user.user_metadata.location || "Nigeria", // Use profile location or default
-        date: new Date().toLocaleDateString(),
-        status: 'pending'
+        location: user.user_metadata?.location || 'Nigeria',
+      }),
     });
 
-    if (error) {
-        toast.error("Error: " + error.message);
-        setLoading(false);
-    } else {
-        // Notify artisan of the booking request (fire and forget)
-        const clientName = user.user_metadata?.full_name || "A client";
-        notify({
-          targetUserId: artisanId,
-          title: 'New Booking Request',
-          body: `${clientName} has sent you a booking request for ₦${total.toLocaleString()}. Funds are held safely in Escrow.`,
-          type: 'booking_request',
-          link: '/jobs',
-        });
-        setStep(3); // Show Success Screen
-        setLoading(false);
+    const data = await res.json();
+
+    if (res.status === 402) {
+      setFundError({ shortfall: data.shortfall });
+      setLoading(false);
+      return;
     }
+
+    if (!res.ok) {
+      toast.error(data.error || 'Booking failed. Please try again.');
+      setLoading(false);
+      return;
+    }
+
+    // Notify artisan (fire and forget)
+    const clientName = user.user_metadata?.full_name || 'A client';
+    notify({
+      targetUserId: artisanId,
+      title: 'New Booking Request',
+      body: `${clientName} has booked you for ₦${amount.toLocaleString()}. Funds are held in Escrow.`,
+      type: 'booking_request',
+      link: '/jobs',
+    });
+
+    setStep(3);
+    setLoading(false);
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200 border border-gray-200 dark:border-gray-800">
-        
+
         {/* Header */}
         <div className="flex justify-between items-center p-4 border-b border-gray-100 dark:border-gray-800">
           <h3 className="font-bold text-gray-900 dark:text-white">
-            {step === 3 ? "Booking Sent!" : "Secure Booking"}
+            {step === 3 ? "Booking Confirmed!" : "Secure Booking"}
           </h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-900 dark:hover:text-white">
             <X className="w-5 h-5" />
@@ -83,25 +93,25 @@ export default function BookingModal({ isOpen, onClose, artisanId }: { isOpen: b
           <div className="p-6 space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Describe the job</label>
-              <textarea 
+              <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="w-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-800 rounded-lg p-3 h-24 text-sm focus:ring-2 focus:ring-green-500 outline-none dark:text-white" 
+                className="w-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-800 rounded-lg p-3 h-24 text-sm focus:ring-2 focus:ring-green-500 outline-none dark:text-white"
                 placeholder="I need a leaky pipe fixed in my kitchen..."
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Your Budget (₦)</label>
-              <input 
-                type="number" 
+              <input
+                type="number"
                 value={budget}
                 onChange={(e) => setBudget(e.target.value)}
-                className="w-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-800 rounded-lg p-3 text-lg font-bold text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 outline-none" 
+                className="w-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-800 rounded-lg p-3 text-lg font-bold text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 outline-none"
                 placeholder="5000"
               />
             </div>
-            <button 
-              onClick={() => setStep(2)} 
+            <button
+              onClick={() => setStep(2)}
               disabled={!budget || !description}
               className="w-full bg-gray-900 dark:bg-white dark:text-gray-900 text-white py-3 rounded-lg font-bold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed mt-2 transition"
             >
@@ -115,30 +125,48 @@ export default function BookingModal({ isOpen, onClose, artisanId }: { isOpen: b
           <div className="p-6 space-y-4">
             <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg flex items-start gap-3 text-sm text-green-800 dark:text-green-300">
               <ShieldCheck className="w-5 h-5 shrink-0" />
-              <p>Funds are held securely in <strong>Escrow</strong>. The artisan only gets paid after you confirm the job is done.</p>
+              <p>Funds are held in <strong>Escrow</strong> until you confirm the job is done. Both parties share the platform fee equally.</p>
             </div>
-            
+
             <div className="space-y-3 py-2 border-t border-b border-gray-100 dark:border-gray-800 my-4">
               <div className="flex justify-between text-gray-600 dark:text-gray-400">
                 <span>Artisan Fee</span>
                 <span>₦{amount.toLocaleString()}</span>
               </div>
               <div className="flex justify-between text-gray-600 dark:text-gray-400">
-                <span>Service Fee (5%)</span>
-                <span>₦{serviceFee.toLocaleString()}</span>
+                <span>Your platform fee (2.5%)</span>
+                <span>₦{clientFee.toLocaleString()}</span>
               </div>
-              <div className="flex justify-between text-lg font-bold text-gray-900 dark:text-white pt-2">
-                <span>Total to Pay</span>
-                <span>₦{total.toLocaleString()}</span>
+              <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500 italic">
+                <span>Artisan platform fee (2.5%) — deducted on release</span>
+                <span>₦{artisanFee.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between text-lg font-bold text-gray-900 dark:text-white pt-2 border-t border-gray-100 dark:border-gray-800">
+                <span>Deducted from wallet now</span>
+                <span>₦{totalCharge.toLocaleString()}</span>
               </div>
             </div>
 
-            <button 
-              onClick={handleBooking} 
+            {/* Insufficient funds error */}
+            {fundError && (
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-bold text-red-700 dark:text-red-400">Insufficient wallet balance</p>
+                  <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+                    You need ₦{fundError.shortfall.toLocaleString()} more.{' '}
+                    <button onClick={() => router.push('/wallet')} className="underline font-bold">Top up wallet</button>
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <button
+              onClick={handleBooking}
               disabled={loading}
-              className="w-full bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700 flex items-center justify-center gap-2 shadow-lg shadow-green-500/30 transition"
+              className="w-full bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700 flex items-center justify-center gap-2 shadow-lg shadow-green-500/30 transition disabled:opacity-60"
             >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><CreditCard className="w-4 h-4" /> Pay & Book</>}
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><CreditCard className="w-4 h-4" /> Pay ₦{totalCharge.toLocaleString()} & Book</>}
             </button>
             <button onClick={() => setStep(1)} className="w-full text-gray-500 dark:text-gray-400 text-sm hover:text-gray-900 dark:hover:text-white pt-2">
               Back to edit
@@ -152,9 +180,9 @@ export default function BookingModal({ isOpen, onClose, artisanId }: { isOpen: b
             <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center mx-auto mb-4">
               <CheckCircle className="w-8 h-8" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Booking Sent!</h2>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Booking Confirmed!</h2>
             <p className="text-gray-500 dark:text-gray-400 mb-6">
-              We have notified the artisan. Your funds are held safely in Escrow.
+              ₦{totalCharge.toLocaleString()} has been held in Escrow. The artisan will be notified.
             </p>
             <button onClick={onClose} className="w-full bg-gray-900 dark:bg-white dark:text-gray-900 text-white py-3 rounded-lg font-bold">
               Return to Profile
