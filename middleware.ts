@@ -32,11 +32,10 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  // Check admin table by user ID
   const { data: admin } = await supabase
     .from('admins')
     .select('id')
-    .eq('user_id', user.id)
+    .eq('email', user.email)
     .single();
 
   if (!admin) {

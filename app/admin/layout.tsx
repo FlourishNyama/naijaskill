@@ -21,11 +21,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         return;
       }
 
-      // Check if user is in the 'admins' table by user ID (not email — emails can be spoofed)
       const { data: admin } = await supabase
         .from('admins')
         .select('id')
-        .eq('user_id', user.id)
+        .eq('email', user.email)
         .single();
 
       if (!admin) {
