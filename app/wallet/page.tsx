@@ -153,8 +153,7 @@ export default function WalletPage() {
   };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center dark:bg-slate-950"><Loader2 className="animate-spin text-green-600" /></div>;
-// DEBUG LINE - DELETE LATER
-console.log("MY KEY IS:", process.env.NEXT_PUBLIC_KORAPAY_PUBLIC_KEY);
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-950 pb-20 transition-colors duration-300">
       <Navbar />

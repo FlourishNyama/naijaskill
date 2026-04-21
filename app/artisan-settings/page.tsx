@@ -58,7 +58,18 @@ export default function ArtisanSettingsPage() {
       setUploading(true);
       if (!e.target.files || e.target.files.length === 0) return;
       const file = e.target.files[0];
-      const fileExt = file.name.split('.').pop();
+
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) {
+        toast.error("Only JPG, PNG, or WebP images are allowed.");
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("Image must be under 5MB.");
+        return;
+      }
+
+      const fileExt = file.type.split('/')[1];
       const fileName = `${user.id}-${Date.now()}.${fileExt}`;
       const filePath = `${fileName}`;
       const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, file);

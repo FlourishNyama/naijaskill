@@ -14,7 +14,6 @@ export default function FindWorkPage() {
   const [user, setUser] = useState<any>(null);
   const [applying, setApplying] = useState<string | null>(null); // Track which job is being applied to
   const [appliedJobs, setAppliedJobs] = useState<Set<string>>(new Set()); // Track IDs of applied jobs
-  const [dynamicCategories, setDynamicCategories] = useState<string[]>([]);
 
   const supabase = createClient();
   const { toast } = useToast();
@@ -94,24 +93,10 @@ export default function FindWorkPage() {
     setApplying(null);
   };
 
-  const filteredJobs = jobs.filter(job => 
-    job.title?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+  const filteredJobs = jobs.filter(job =>
+    job.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     job.location?.toLowerCase().includes(searchTerm.toLowerCase())
   );
-  const fetchCategories = async () => {
-    // Fetch unique job titles from the profiles table
-    const { data: profileData } = await supabase
-        .from('profiles')
-        .select('job_title')
-        .not('job_title', 'is', null);
-
-    if (profileData) {
-        // Use a Set to get only unique values and remove duplicates
-        const uniqueCats = Array.from(new Set(profileData.map(p => p.job_title)));
-        setDynamicCategories(uniqueCats);
-    }
-};
-fetchCategories();
 
   if (loading) return <div className="min-h-screen flex items-center justify-center dark:bg-slate-950"><Loader2 className="w-10 h-10 animate-spin text-green-600" /></div>;
 

@@ -24,8 +24,18 @@ export default function ManageJobPage() {
 
   useEffect(() => {
     const fetchData = async () => {
-      // 1. Fetch Job Info
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { router.push('/login'); return; }
+
+      // 1. Fetch Job Info — only if current user owns it
       const { data: jobData } = await supabase.from('jobs').select('*').eq('id', jobId).single();
+
+      if (!jobData || jobData.client_id !== user.id) {
+        toast.error("Access denied.");
+        router.push('/jobs');
+        return;
+      }
+
       setJob(jobData);
 
       // 2. Fetch Pending Applications

@@ -11,7 +11,6 @@ import { createClient } from '../../utils/supabase/client';
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
   const supabase = createClient();
 
   useEffect(() => {
@@ -22,11 +21,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         return;
       }
 
-      // Check if user is in the 'admins' table
+      // Check if user is in the 'admins' table by user ID (not email — emails can be spoofed)
       const { data: admin } = await supabase
         .from('admins')
-        .select('*')
-        .eq('email', user.email) // Security Check by Email
+        .select('id')
+        .eq('user_id', user.id)
         .single();
 
       if (!admin) {
@@ -35,7 +34,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         return;
       }
 
-      setIsAdmin(true);
       setLoading(false);
     };
     checkAdmin();
