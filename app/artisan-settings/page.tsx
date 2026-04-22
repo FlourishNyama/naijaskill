@@ -292,7 +292,6 @@ export default function ArtisanSettingsPage() {
             </div>
           )}
         </div>
-        </div>
       </main>
     </div>
   );

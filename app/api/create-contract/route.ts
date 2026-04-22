@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const { artisanId, description, budget, location, jobId, serviceType } = body;
+  const { artisanId, description, budget, location, jobId, serviceType, isStaged } = body;
   if (!artisanId || !budget || budget <= 0) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
   }
@@ -74,6 +74,7 @@ export async function POST(request: NextRequest) {
       location: location || 'Nigeria',
       date: new Date().toISOString().split('T')[0],
       status: 'pending',
+      is_staged: isStaged ?? false,
     })
     .select('id')
     .single();
@@ -84,7 +85,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: bookingErr.message }, { status: 500 });
   }
 
-  // 5. Close the source job post if this came from a job post hire
+  // 5. If staged, create the 3 stage records
+  if (isStaged && booking) {
+    const stages = [
+      { stage_number: 1, label: 'Materials Deposit', amount: Math.round(artisanPayout * 0.30) },
+      { stage_number: 2, label: 'Mid-Work Progress',  amount: Math.round(artisanPayout * 0.50) },
+      { stage_number: 3, label: 'Final Completion',   amount: artisanPayout - Math.round(artisanPayout * 0.30) - Math.round(artisanPayout * 0.50) },
+    ];
+    await supabase.from('job_stages').insert(
+      stages.map(s => ({ ...s, booking_id: booking.id, status: 'pending' }))
+    );
+  }
+
+  // 6. Close the source job post if this came from a job post hire
   if (jobId) {
     await supabase.from('jobs').update({ status: 'closed' }).eq('id', jobId);
     await supabase.from('job_applications').update({ status: 'accepted' }).eq('id', body.applicationId).eq('job_id', jobId);

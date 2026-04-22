@@ -1,7 +1,7 @@
 "use client";
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { X, ShieldCheck, CreditCard, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
+import { X, ShieldCheck, CreditCard, CheckCircle, Loader2, AlertCircle, Layers } from 'lucide-react';
 import { createClient } from '../utils/supabase/client';
 import { useToast } from './ToastProvider';
 import { notify } from '@/utils/notifyClient';
@@ -12,6 +12,7 @@ export default function BookingModal({ isOpen, onClose, artisanId }: { isOpen: b
   const [budget, setBudget] = useState("");
   const [loading, setLoading] = useState(false);
   const [fundError, setFundError] = useState<{ shortfall: number } | null>(null);
+  const [isStaged, setIsStaged] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -43,6 +44,7 @@ export default function BookingModal({ isOpen, onClose, artisanId }: { isOpen: b
         description,
         budget: amount,
         location: user.user_metadata?.location || 'Nigeria',
+        isStaged,
       }),
     });
 
@@ -110,6 +112,24 @@ export default function BookingModal({ isOpen, onClose, artisanId }: { isOpen: b
                 placeholder="5000"
               />
             </div>
+            {/* Staged payment toggle */}
+            <button
+              type="button"
+              onClick={() => setIsStaged(p => !p)}
+              className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 transition text-left ${isStaged ? 'border-green-500 bg-green-50 dark:bg-green-900/20' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'}`}
+            >
+              <Layers className={`w-5 h-5 shrink-0 ${isStaged ? 'text-green-600' : 'text-gray-400'}`} />
+              <div>
+                <p className={`text-sm font-bold ${isStaged ? 'text-green-700 dark:text-green-400' : 'text-gray-700 dark:text-gray-300'}`}>
+                  Split into 3 payment stages
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">30% materials · 50% mid-work · 20% final. Each stage released by admin.</p>
+              </div>
+              <div className={`ml-auto w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center ${isStaged ? 'border-green-500 bg-green-500' : 'border-gray-300'}`}>
+                {isStaged && <CheckCircle className="w-3 h-3 text-white" />}
+              </div>
+            </button>
+
             <button
               onClick={() => setStep(2)}
               disabled={!budget || !description}
@@ -125,7 +145,9 @@ export default function BookingModal({ isOpen, onClose, artisanId }: { isOpen: b
           <div className="p-6 space-y-4">
             <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg flex items-start gap-3 text-sm text-green-800 dark:text-green-300">
               <ShieldCheck className="w-5 h-5 shrink-0" />
-              <p>Funds are held in <strong>Escrow</strong> until you confirm the job is done. Both parties share the platform fee equally.</p>
+              <p>Funds held in <strong>Escrow</strong>. Both parties share the 5% platform fee equally.
+                {isStaged && <><br /><span className="font-bold mt-1 block">Staged: 30% → 50% → 20% released per stage after admin approval.</span></>}
+              </p>
             </div>
 
             <div className="space-y-3 py-2 border-t border-b border-gray-100 dark:border-gray-800 my-4">
